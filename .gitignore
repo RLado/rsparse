@@ -1,0 +1,5 @@
+/target
+
+# Ignored file types
+*.pdf
+*.lock

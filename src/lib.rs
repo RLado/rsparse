@@ -7,8 +7,8 @@
 pub mod data;
 use data::Sprs;
 
-// Primary routines
 
+// Primary routines ------------------------------------------------------------
 /// gaxpy: Generalized A times x plus y
 /// r = A*x+y
 pub fn gaxpy(a_mat: &Sprs, x: &Vec<f32>, y: &Vec<f32>) -> Vec<f32> {    

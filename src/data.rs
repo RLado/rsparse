@@ -53,7 +53,7 @@ impl Sprs{
         for i in 0..c{
             self.p.push(idxptr);
             for j in 0..r{
-                if a[j][i] == 0.0 {
+                if a[j][i] != 0.0 {
                     self.x.push(a[j][i]);
                     self.i.push(j as u32);
                     idxptr += 1

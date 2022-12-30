@@ -7,15 +7,59 @@
 /// ![CSR fig](../../../../docs/CSR_fig.png)
 pub struct Sprs{
     /// maximum number of entries
-    pub nzmax: i32,
+    pub nzmax: u32,
     /// number of rows
-    pub m: i32,
+    pub m: u32,
     /// number of columns
-    pub n: i32,
+    pub n: u32,
     /// column pointers (size n+1) (Marks the index on which data starts in each column)
-    pub p: Vec<i32>,
+    pub p: Vec<u32>,
     /// row indicies, size nzmax
-    pub i: Vec<i32>,
+    pub i: Vec<u32>,
     /// numericals values, size nzmax
     pub x: Vec<f32> 
+}
+
+impl Sprs{
+    /// Initializes to an empty matrix
+    /// 
+    pub fn new() -> Sprs{
+        let s = Sprs{
+            nzmax: 0, 
+            m: 0, 
+            n: 0,
+            p: Vec::new(),
+            i: Vec::new(),
+            x: Vec::new()
+        };
+        return s;
+    }
+
+    /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the 
+    /// current object
+    /// 
+    pub fn from_vec(&mut self, a: Vec<Vec<f32>>) {
+        let r = a.len(); // num rows
+        let c = a[0].len(); // num columns
+        let mut idxptr = 0;
+
+        self.nzmax = (r*c) as u32;
+        self.m = r as u32; 
+        self.n = c as u32;
+        self.p = Vec::new();
+        self.i = Vec::new();
+        self.x = Vec::new();
+    
+        for i in 0..c{
+            self.p.push(idxptr);
+            for j in 0..r{
+                if a[j][i] == 0.0 {
+                    self.x.push(a[j][i]);
+                    self.i.push(j as u32);
+                    idxptr += 1
+                }
+            }
+        }
+        self.p.push(idxptr); 
+    }
 }

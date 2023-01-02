@@ -21,7 +21,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f32>, y: &Vec<f32>) -> Vec<f32> {
 }
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
-/// (not tested)
+/// 
 pub fn cumsum(p: &mut Vec<usize>, c: &mut Vec<usize>, n: usize) -> usize {
     let mut nz = 0;
     for i in 0..n {
@@ -43,7 +43,7 @@ pub fn cumsum(p: &mut Vec<usize>, c: &mut Vec<usize>, n: usize) -> usize {
 /// matrix C is interpreted as a matrix in compressed-row form, then C is equal
 /// to A, just in a different format. If C is viewed as a compressed-column
 /// matrix, then C contains A^T.
-/// (not tested)
+/// 
 pub fn transpose(a: &Sprs) -> Sprs {
     let mut q;
     let mut w = vec![0; a.n];
@@ -51,9 +51,9 @@ pub fn transpose(a: &Sprs) -> Sprs {
         nzmax: a.p[a.n],
         m: a.n,
         n: a.m,
-        p: Vec::new(),
-        i: Vec::new(),
-        x: a.x.clone(),
+        p: vec![0; a.m + 1],
+        i: vec![0; a.p[a.n]],
+        x: vec![0.; a.p[a.n]],
     };
 
     for p in 0..a.p[a.n] {
@@ -62,10 +62,10 @@ pub fn transpose(a: &Sprs) -> Sprs {
     cumsum(&mut c.p, &mut w, a.m); // row pointers
     for j in 0..a.n {
         for p in a.p[j]..a.p[j + 1] {
-            w[a.i[p]] += 1;
             q = w[a.i[p]];
             c.i[q] = j; // place A(i,j) as entry C(j,i)
             c.x[q] = a.x[p];
+            w[a.i[p]] += 1;
         }
     }
 
@@ -90,16 +90,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     for j in 0..b.n {
         c.p[j] = nz;
         for p in b.p[j]..b.p[j + 1] {
-            nz = scatter(
-                a,
-                &(b.i[p]),
-                &b.x[p],
-                &mut w,
-                &mut x,
-                &(j + 1),
-                &mut c,
-                &nz,
-            );
+            nz = scatter(a, &(b.i[p]), &b.x[p], &mut w, &mut x, &(j + 1), &mut c, &nz);
         }
         for p in c.p[j]..nz {
             c.x[p] = x[c.i[p]];

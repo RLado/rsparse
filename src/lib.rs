@@ -88,9 +88,9 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     };
 
     for j in 0..b.n {
-        c.p[j] = nz;
+        c.p[j] = nz; // column j of C starts here
         for p in b.p[j]..b.p[j + 1] {
-            nz = scatter(a, &(b.i[p]), &b.x[p], &mut w, &mut x, &(j + 1), &mut c, &nz);
+            nz = scatter(a, b.i[p], b.x[p], &mut w, &mut x, j + 1, &mut c, nz);
         }
         for p in c.p[j]..nz {
             c.x[p] = x[c.i[p]];
@@ -106,25 +106,25 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
 ///
 pub fn scatter(
     a: &Sprs,
-    j: &usize,
-    beta: &f32,
+    j: usize,
+    beta: f32,
     w: &mut Vec<usize>,
     x: &mut Vec<f32>,
-    mark: &usize,
+    mark: usize,
     c: &mut Sprs,
-    nz: &usize,
+    nz: usize,
 ) -> usize {
     let mut i;
-    let mut nzo = *nz;
-    for p in a.p[*j]..a.p[*j + 1] {
+    let mut nzo = nz;
+    for p in a.p[j]..a.p[j + 1] {
         i = a.i[p]; //A(i,j) is nonzero
-        if w[i] < *mark {
-            w[i] = *mark; //i is new entry in column j
+        if w[i] < mark {
+            w[i] = mark; //i is new entry in column j
             c.i[nzo] = i; //add i to pattern of C(:,j)
             nzo += 1;
             x[i] = beta * a.x[p]; // x(i) = beta*A(i,j)
         } else {
-            x[i] += beta + a.x[p]; // i exists in C(:,j) already
+            x[i] += beta * a.x[p]; // i exists in C(:,j) already
         }
     }
 

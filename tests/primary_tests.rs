@@ -177,6 +177,33 @@ fn multiply_2() {
 
 #[test]
 fn multiply_3() {
+    let a = vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    let b = vec![vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
+    let mut b_sparse = rsparse::data::Sprs::new();
+    b_sparse.from_vec(&b);
+
+    let c = rsparse::multiply(&a_sparse, &b_sparse);
+
+    assert_eq!(c.todense(), vec![
+        vec![1., 1., 3.],
+        vec![5., 0., 0.],
+        vec![2., 2., 0.]
+    ]);
+
+    let d = rsparse::multiply(&b_sparse, &a_sparse);
+
+    assert_eq!(d.todense(), vec![
+        vec![1., 1., 3.],
+        vec![5., 0., 0.],
+        vec![2., 2., 0.]
+    ]);
+}
+
+#[test]
+fn multiply_4() {
     let a = vec![
         vec![0.951851,   0.980789,   0.538168,   0.597793,   0.729354],
         vec![0.427680,   0.511328,   0.794301,   0.969392,   0.702270],
@@ -200,11 +227,11 @@ fn multiply_3() {
     let c = rsparse::multiply(&a_sparse, &b_sparse);
 
     assert_eq!(c.todense(), vec![
-        vec![2.1615,   2.0044,   2.1312,   0.8217,   2.2074],
-        vec![2.2828,   1.9089,   1.9295,   0.9412,   2.0017],
-        vec![2.2156,   1.8776,   1.9473,   1.0190,   1.8352],
-        vec![1.0244,   0.8742,   0.9177,   0.7036,   0.7551],
-        vec![2.0367,   1.5642,   1.4313,   0.8668,   1.7571]
-    ]);
+        vec![2.161516 , 2.0043929, 2.131185 , 0.8216767, 2.2073836],
+        vec![2.282785 , 1.908912 , 1.9295087, 0.9412086, 2.0016687],
+        vec![2.215576 , 1.8775643, 1.9472924, 1.019038 , 1.8351716],
+        vec![1.0243871, 0.8741871, 0.9176706, 0.7035911, 0.755058 ],
+        vec![2.0367186, 1.564208 , 1.4313319, 0.8667819, 1.7570789]]
+    );
 
 }

@@ -21,7 +21,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f32>, y: &Vec<f32>) -> Vec<f32> {
 }
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
-/// 
+///
 pub fn cumsum(p: &mut Vec<usize>, c: &mut Vec<usize>, n: usize) -> usize {
     let mut nz = 0;
     for i in 0..n {
@@ -43,7 +43,7 @@ pub fn cumsum(p: &mut Vec<usize>, c: &mut Vec<usize>, n: usize) -> usize {
 /// matrix C is interpreted as a matrix in compressed-row form, then C is equal
 /// to A, just in a different format. If C is viewed as a compressed-column
 /// matrix, then C contains A^T.
-/// 
+///
 pub fn transpose(a: &Sprs) -> Sprs {
     let mut q;
     let mut w = vec![0; a.n];
@@ -129,4 +129,34 @@ pub fn scatter(
     }
 
     return nzo;
+}
+
+/// C = alpha*A + beta*B
+///
+pub fn add(a: &Sprs, b: &Sprs, alpha: f32, beta: f32) -> Sprs {
+    let mut nz = 0;
+    let mut w = vec![0; a.m];
+    let mut x = vec![0.0; a.m];
+    let mut c = Sprs {
+        nzmax: (a.p[a.n] + b.p[b.n]),
+        m: a.m,
+        n: b.n,
+        p: vec![0; b.n + 1],
+        i: vec![0; a.p[a.n] + b.p[b.n]],
+        x: vec![0.; a.p[a.n] + b.p[b.n]],
+    };
+
+    for j in 0..b.n{
+        c.p[j] = nz; // column j of C starts here
+        nz = scatter (&a, j, alpha, &mut w, &mut x, j+1, &mut c, nz);   // alpha*A(:,j)
+	    nz = scatter (&b, j, beta, &mut w, &mut x, j+1, &mut c, nz);    // beta*B(:,j)
+        
+        for p in c.p[j]..nz{
+            c.x[p]= x[c.i[p]];
+        }
+    }
+    c.p[b.n] = nz; // finalize the last column of C
+
+    c.trim();
+    return c;
 }

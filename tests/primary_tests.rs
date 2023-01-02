@@ -235,3 +235,112 @@ fn multiply_4() {
     );
 
 }
+
+#[test]
+fn add_1(){
+    let a = vec![
+        vec![2., 2., 4., 4., 1.],
+        vec![3., 4., 5., 8., 3.],
+        vec![2., 6., 3., 9., 3.],
+        vec![5., 7., 6., 7., 1.],
+        vec![7., 1., 8., 9., 2.]
+    ];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    let b = vec![
+        vec![8., 8., 6., 6., 2.],
+        vec![4., 9., 7., 5., 9.],
+        vec![2., 3., 8., 4., 1.],
+        vec![4., 7., 6., 8., 9.],
+        vec![9., 1., 8., 7., 1.]
+    ];
+    let mut b_sparse = rsparse::data::Sprs::new();
+    b_sparse.from_vec(&b);
+
+    let r = vec![
+        vec![10., 10., 10., 10.,  3.],
+        vec![7., 13., 12., 13., 12.],
+        vec![4.,  9., 11., 13.,  4.],
+        vec![9., 14., 12., 15., 10.],
+        vec![16.,  2., 16., 16.,  3.]
+    ];
+    let mut r_sparse = rsparse::data::Sprs::new();
+    r_sparse.from_vec(&r);
+
+    // Check sparse vs sparse
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
+
+    // Check as dense
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
+
+    // Check B+A
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
+    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r);
+
+    // Check 2A - A = A
+    assert_eq!(rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(), a_sparse.todense());
+
+}
+
+#[test]
+fn add_2(){
+    let a = vec![
+        vec![2., 2., 4., 4., 1.],
+        vec![3., 4., 5., 8., 3.],
+        vec![2., 6., -3., 9., 3.],
+        vec![5., 7., 6., 7., 1.],
+        vec![7., 1., 8., 9., 2.]
+    ];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    let b = vec![
+        vec![8., 8., 6., 6., 2.],
+        vec![4., 9., 7., 5., 9.],
+        vec![2., 3., 8., 4., 1.],
+        vec![4., 7., 6., 8., 9.],
+        vec![9., 1., 8., 7., 1.]
+    ];
+    let mut b_sparse = rsparse::data::Sprs::new();
+    b_sparse.from_vec(&b);
+
+    let r = vec![
+        vec![10., 10., 10., 10.,  3.],
+        vec![7., 13., 12., 13., 12.],
+        vec![4.,  9., 5., 13.,  4.],
+        vec![9., 14., 12., 15., 10.],
+        vec![16.,  2., 16., 16.,  3.]
+    ];
+    let mut r_sparse = rsparse::data::Sprs::new();
+    r_sparse.from_vec(&r);
+
+    // Check sparse vs sparse
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
+
+    // Check as dense
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
+
+    // Check B+A
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
+    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
+    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r);
+
+    // Check 2A - A = A
+    assert_eq!(rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(), a_sparse.todense());
+
+    // Check 2B - B = B
+    assert_eq!(rsparse::add(&b_sparse, &b_sparse, 2., -1.).todense(), b_sparse.todense());
+
+}

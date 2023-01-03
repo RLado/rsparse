@@ -3,6 +3,9 @@
 //! A collection of direct methods for solving sparse linear systems implemented
 //! in Rust. This library reimplements most of the code from "Direct Methods For
 //! Sparse Linear Systems by Dr. Timothy A. Davis."
+//! 
+//! MIT License
+//! Copyright (c) 2023 Ricard Lado
 
 pub mod data;
 use data::Sprs;
@@ -186,8 +189,10 @@ pub fn ipvec(n: usize, p: &Option<Vec<usize>>, b: &Vec<f32>, x: &mut Vec<f32>) {
 
 /// Pinv = P', or P = Pinv'
 /// not tested
-pub fn pinvert(p: &Option<Vec<usize>>, n: usize) -> Option<Vec<usize>> { // pinv
-    if p.is_none() { // p = None denotes identity
+pub fn pinvert(p: &Option<Vec<usize>>, n: usize) -> Option<Vec<usize>> {
+    // pinv
+    if p.is_none() {
+        // p = None denotes identity
         return None;
     }
 
@@ -199,3 +204,101 @@ pub fn pinvert(p: &Option<Vec<usize>>, n: usize) -> Option<Vec<usize>> { // pinv
     return Some(pinv);
 }
 
+/// C = A(P,Q) where P and Q are permutations of 0..m-1 and 0..n-1
+/// not tested
+pub fn permute(a: &Sprs, pinv: &Option<Vec<usize>>, q: &Option<Vec<usize>>) -> Sprs {
+    let mut j;
+    let mut nz = 0;
+    let mut c = Sprs {
+        nzmax: a.p[a.n],
+        m: a.m,
+        n: a.n,
+        p: vec![0; a.n + 1],
+        i: vec![0; a.p[a.n]],
+        x: vec![0.; a.p[a.n]],
+    };
+
+    for k in 0..a.n {
+        c.p[k] = nz; // column k of C is column Q[k] of A
+        if q.is_some() {
+            j = q.as_ref().unwrap()[k];
+        } else {
+            j = k;
+        }
+        for p in a.p[j]..a.p[j + 1] {
+            c.x[nz] = a.x[p]; // row i of A is row Pinv[i] of C
+            if pinv.is_some() {
+                c.i[nz] = pinv.as_ref().unwrap()[a.i[p]];
+            } else {
+                c.i[nz] = a.i[p];
+            }
+            nz += 1;
+        }
+    }
+    c.p[a.n] = nz;
+
+    return c;
+}
+
+/// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
+/// not tested
+pub fn symperm(a: &Sprs, pinv: &Option<Vec<usize>>) -> Sprs {
+    let mut i;
+    let mut i2;
+    let mut j2;
+    let mut q;
+    let mut c = Sprs {
+        nzmax: a.p[a.n],
+        m: a.m,
+        n: a.n,
+        p: vec![0; a.n + 1],
+        i: vec![0; a.p[a.n]],
+        x: vec![0.; a.p[a.n]],
+    };
+    let mut w = vec![0; a.n];
+
+    for j in 0..a.n {
+        //count entries in each column of C
+        if pinv.is_some() {
+            j2 = pinv.as_ref().unwrap()[j]; // column j of A is column j2 of C
+        } else {
+            j2 = j;
+        }
+
+        for p in a.p[j]..a.p[j + 1] {
+            i = a.i[p];
+            if i > j {
+                continue; // skip lower triangular part of A
+            }
+            if pinv.is_some() {
+                i2 = pinv.as_ref().unwrap()[i]; // row i of A is row i2 of C
+            } else {
+                i2 = i;
+            }
+            w[std::cmp::max(i2, j2)] += 1; // column count of C
+        }
+    }
+    cumsum(&mut c.p, &mut w, a.n); // compute column pointers of C
+    for j in 0..a.n {
+        if pinv.is_some() {
+            j2 = pinv.as_ref().unwrap()[j]; // column j of A is column j2 of C
+        } else {
+            j2 = j;
+        }
+        for p in a.p[j]..a.p[j + 1] {
+            i = a.i[p];
+            if i > j {
+                continue; // skip lower triangular part of A
+            }
+            if pinv.is_some() {
+                i2 = pinv.as_ref().unwrap()[i]; // row i of A is row i2 of C
+            } else {
+                i2 = i;
+            }
+            q = w[std::cmp::max(i2, j2)];
+            w[std::cmp::max(i2, j2)] += 1;
+            c.i[q] = std::cmp::min(i2, j2);
+        }
+    }
+    return c;
+}

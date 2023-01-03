@@ -54,26 +54,29 @@ fn todense_3() {
 #[test]
 fn transpose_1() {
     let a = vec![
-        vec![2.1615,   2.0044,   2.1312,   0.8217,   2.2074],
-        vec![2.2828,   1.9089,   1.9295,   0.9412,   2.0017],
-        vec![2.2156,   1.8776,   1.9473,   1.0190,   1.8352],
-        vec![1.0244,   0.8742,   0.9177,   0.7036,   0.7551],
-        vec![2.0367,   1.5642,   1.4313,   0.8668,   1.7571]
+        vec![2.1615, 2.0044, 2.1312, 0.8217, 2.2074],
+        vec![2.2828, 1.9089, 1.9295, 0.9412, 2.0017],
+        vec![2.2156, 1.8776, 1.9473, 1.0190, 1.8352],
+        vec![1.0244, 0.8742, 0.9177, 0.7036, 0.7551],
+        vec![2.0367, 1.5642, 1.4313, 0.8668, 1.7571],
     ];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
 
-    assert_eq!(rsparse::transpose(&a_sparse).todense(), vec![
-        vec![2.1615,   2.2828,   2.2156,   1.0244,   2.0367],
-        vec![2.0044,   1.9089,   1.8776,   0.8742,   1.5642],
-        vec![2.1312,   1.9295,   1.9473,   0.9177,   1.4313],
-        vec![0.8217,   0.9412,   1.0190,   0.7036,   0.8668],
-        vec![2.2074,   2.0017,   1.8352,   0.7551,   1.7571]
-    ])
+    assert_eq!(
+        rsparse::transpose(&a_sparse).todense(),
+        vec![
+            vec![2.1615, 2.2828, 2.2156, 1.0244, 2.0367],
+            vec![2.0044, 1.9089, 1.8776, 0.8742, 1.5642],
+            vec![2.1312, 1.9295, 1.9473, 0.9177, 1.4313],
+            vec![0.8217, 0.9412, 1.0190, 0.7036, 0.8668],
+            vec![2.2074, 2.0017, 1.8352, 0.7551, 1.7571]
+        ]
+    )
 }
 
 #[test]
-fn transpose_2(){
+fn transpose_2() {
     let a = vec![
         vec![92., 99., 1., 8., 15., 67., 74., 51., 58., 40.],
         vec![98., 80., 7., 14., 16., 73., 55., 57., 64., 41.],
@@ -89,18 +92,20 @@ fn transpose_2(){
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
 
-    assert_eq!(rsparse::transpose(&rsparse::transpose(&a_sparse)).todense(),a);
+    assert_eq!(
+        rsparse::transpose(&rsparse::transpose(&a_sparse)).todense(),
+        a
+    );
 }
 
 #[test]
-fn transpose_3(){
+fn transpose_3() {
     let a = vec![vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
 
-    assert_eq!(rsparse::transpose(&a_sparse).todense(),a);
+    assert_eq!(rsparse::transpose(&a_sparse).todense(), a);
 }
-
 
 #[test]
 fn gaxpy_1() {
@@ -148,11 +153,10 @@ fn multiply_1() {
 
     let c = rsparse::multiply(&a_sparse, &b_sparse);
 
-    assert_eq!(c.todense(), vec![
-        vec![18., 2., 18.],
-        vec![0., 0., 2.],
-        vec![90., 9., 99.]
-    ])
+    assert_eq!(
+        c.todense(),
+        vec![vec![18., 2., 18.], vec![0., 0., 2.], vec![90., 9., 99.]]
+    )
 }
 
 #[test]
@@ -187,63 +191,63 @@ fn multiply_3() {
 
     let c = rsparse::multiply(&a_sparse, &b_sparse);
 
-    assert_eq!(c.todense(), vec![
-        vec![1., 1., 3.],
-        vec![5., 0., 0.],
-        vec![2., 2., 0.]
-    ]);
+    assert_eq!(
+        c.todense(),
+        vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
+    );
 
     let d = rsparse::multiply(&b_sparse, &a_sparse);
 
-    assert_eq!(d.todense(), vec![
-        vec![1., 1., 3.],
-        vec![5., 0., 0.],
-        vec![2., 2., 0.]
-    ]);
+    assert_eq!(
+        d.todense(),
+        vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
+    );
 }
 
 #[test]
 fn multiply_4() {
     let a = vec![
-        vec![0.951851,   0.980789,   0.538168,   0.597793,   0.729354],
-        vec![0.427680,   0.511328,   0.794301,   0.969392,   0.702270],
-        vec![0.294124,   0.453990,   0.932289,   0.842932,   0.803577],
-        vec![0.045583,   0.318977,   0.735981,   0.090698,   0.312947],
-        vec![0.285703,   0.371392,   0.758594,   0.961243,   0.282974]
+        vec![0.951851, 0.980789, 0.538168, 0.597793, 0.729354],
+        vec![0.427680, 0.511328, 0.794301, 0.969392, 0.702270],
+        vec![0.294124, 0.453990, 0.932289, 0.842932, 0.803577],
+        vec![0.045583, 0.318977, 0.735981, 0.090698, 0.312947],
+        vec![0.285703, 0.371392, 0.758594, 0.961243, 0.282974],
     ];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
 
     let b = vec![
-        vec![5.6488e-01,   8.4342e-01,   7.9746e-01,   1.7830e-01,   5.1775e-01],
-        vec![4.0667e-01,   1.2647e-01,   1.8642e-01,   1.1316e-01,   8.6533e-01],
-        vec![9.9557e-01,   8.3827e-01,   7.3728e-01,   8.8159e-01,   4.7664e-01],
-        vec![9.6210e-01,   5.4480e-01,   3.6677e-01,   1.0864e-01,   9.4581e-01],
-        vec![1.5638e-01,   4.1233e-01,   7.8597e-01,   2.1770e-03,   6.0253e-02]
+        vec![5.6488e-01, 8.4342e-01, 7.9746e-01, 1.7830e-01, 5.1775e-01],
+        vec![4.0667e-01, 1.2647e-01, 1.8642e-01, 1.1316e-01, 8.6533e-01],
+        vec![9.9557e-01, 8.3827e-01, 7.3728e-01, 8.8159e-01, 4.7664e-01],
+        vec![9.6210e-01, 5.4480e-01, 3.6677e-01, 1.0864e-01, 9.4581e-01],
+        vec![1.5638e-01, 4.1233e-01, 7.8597e-01, 2.1770e-03, 6.0253e-02],
     ];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b);
 
     let c = rsparse::multiply(&a_sparse, &b_sparse);
 
-    assert_eq!(c.todense(), vec![
-        vec![2.161516 , 2.0043929, 2.131185 , 0.8216767, 2.2073836],
-        vec![2.282785 , 1.908912 , 1.9295087, 0.9412086, 2.0016687],
-        vec![2.215576 , 1.8775643, 1.9472924, 1.019038 , 1.8351716],
-        vec![1.0243871, 0.8741871, 0.9176706, 0.7035911, 0.755058 ],
-        vec![2.0367186, 1.564208 , 1.4313319, 0.8667819, 1.7570789]]
+    assert_eq!(
+        c.todense(),
+        vec![
+            vec![2.161516, 2.0043929, 2.131185, 0.8216767, 2.2073836],
+            vec![2.282785, 1.908912, 1.9295087, 0.9412086, 2.0016687],
+            vec![2.215576, 1.8775643, 1.9472924, 1.019038, 1.8351716],
+            vec![1.0243871, 0.8741871, 0.9176706, 0.7035911, 0.755058],
+            vec![2.0367186, 1.564208, 1.4313319, 0.8667819, 1.7570789]
+        ]
     );
-
 }
 
 #[test]
-fn add_1(){
+fn add_1() {
     let a = vec![
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
         vec![5., 7., 6., 7., 1.],
-        vec![7., 1., 8., 9., 2.]
+        vec![7., 1., 8., 9., 2.],
     ];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
@@ -253,17 +257,17 @@ fn add_1(){
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
         vec![4., 7., 6., 8., 9.],
-        vec![9., 1., 8., 7., 1.]
+        vec![9., 1., 8., 7., 1.],
     ];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b);
 
     let r = vec![
-        vec![10., 10., 10., 10.,  3.],
+        vec![10., 10., 10., 10., 3.],
         vec![7., 13., 12., 13., 12.],
-        vec![4.,  9., 11., 13.,  4.],
+        vec![4., 9., 11., 13., 4.],
         vec![9., 14., 12., 15., 10.],
-        vec![16.,  2., 16., 16.,  3.]
+        vec![16., 2., 16., 16., 3.],
     ];
     let mut r_sparse = rsparse::data::Sprs::new();
     r_sparse.from_vec(&r);
@@ -274,29 +278,37 @@ fn add_1(){
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
 
     // Check as dense
-    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(
+        rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(),
+        r_sparse.todense()
+    );
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
 
     // Check B+A
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
-    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(
+        rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(),
+        r_sparse.todense()
+    );
     assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r);
 
     // Check 2A - A = A
-    assert_eq!(rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(), a_sparse.todense());
-
+    assert_eq!(
+        rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(),
+        a_sparse.todense()
+    );
 }
 
 #[test]
-fn add_2(){
+fn add_2() {
     let a = vec![
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., -3., 9., 3.],
         vec![5., 7., 6., 7., 1.],
-        vec![7., 1., 8., 9., 2.]
+        vec![7., 1., 8., 9., 2.],
     ];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
@@ -306,17 +318,17 @@ fn add_2(){
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
         vec![4., 7., 6., 8., 9.],
-        vec![9., 1., 8., 7., 1.]
+        vec![9., 1., 8., 7., 1.],
     ];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b);
 
     let r = vec![
-        vec![10., 10., 10., 10.,  3.],
+        vec![10., 10., 10., 10., 3.],
         vec![7., 13., 12., 13., 12.],
-        vec![4.,  9., 5., 13.,  4.],
+        vec![4., 9., 5., 13., 4.],
         vec![9., 14., 12., 15., 10.],
-        vec![16.,  2., 16., 16.,  3.]
+        vec![16., 2., 16., 16., 3.],
     ];
     let mut r_sparse = rsparse::data::Sprs::new();
     r_sparse.from_vec(&r);
@@ -327,20 +339,31 @@ fn add_2(){
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
 
     // Check as dense
-    assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(
+        rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(),
+        r_sparse.todense()
+    );
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
 
-    // Check B+A
+    // Check B + A
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).x, r_sparse.x);
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).i, r_sparse.i);
     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).p, r_sparse.p);
-    assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r_sparse.todense());
+    assert_eq!(
+        rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(),
+        r_sparse.todense()
+    );
     assert_eq!(rsparse::add(&b_sparse, &a_sparse, 1., 1.).todense(), r);
 
     // Check 2A - A = A
-    assert_eq!(rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(), a_sparse.todense());
+    assert_eq!(
+        rsparse::add(&a_sparse, &a_sparse, 2., -1.).todense(),
+        a_sparse.todense()
+    );
 
     // Check 2B - B = B
-    assert_eq!(rsparse::add(&b_sparse, &b_sparse, 2., -1.).todense(), b_sparse.todense());
-
+    assert_eq!(
+        rsparse::add(&b_sparse, &b_sparse, 2., -1.).todense(),
+        b_sparse.todense()
+    );
 }

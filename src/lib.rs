@@ -3,7 +3,7 @@
 //! A collection of direct methods for solving sparse linear systems implemented
 //! in Rust. This library reimplements most of the code from "Direct Methods For
 //! Sparse Linear Systems by Dr. Timothy A. Davis."
-//! 
+//!
 //! MIT License
 //! Copyright (c) 2023 Ricard Lado
 
@@ -302,3 +302,72 @@ pub fn symperm(a: &Sprs, pinv: &Option<Vec<usize>>) -> Sprs {
     }
     return c;
 }
+
+/// Computes the norm of a sparse matrix
+/// not tested
+pub fn norm(a: &Sprs) -> f32 {
+    let mut norm_r = 0.;
+    for j in 0..a.n {
+        let mut s = 0.;
+        for p in a.p[j]..a.p[j + 1] {
+            s += a.x[p].abs();
+        }
+        norm_r = f32::max(norm_r, s);
+    }
+    return norm_r;
+}
+
+/// Solves a lower triangular system. Solves L*x=b. Where x and b are dense.
+/// 
+/// The lsolve function assumes that the diagonal entry of L is always present 
+/// and is the first entry in each column. Otherwise, the row indices in each 
+/// column of L can appear in any order.
+/// 
+/// On input, X contains the right hand side, and on output, the solution.
+/// not tested
+pub fn lsolve(l: &Sprs, x: &mut Vec<f32>) {
+    for j in 0..l.n{
+        x[j] /= l.x[l.p[j]];
+        for p in l.p[j]+1 .. l.p[j+1]{
+            x[l.i[p]] -= l.x[p] * x[j];
+        }
+    }
+}
+
+/// Solves L'*x=b. Where x and b are dense.
+/// 
+/// On input, X contains the right hand side, and on output, the solution.
+/// not tested
+pub fn ltsolve(l: &Sprs, x: &mut Vec<f32>){
+    for j in (0..l.n).rev() {
+        for p in l.p[j]+1..l.p[j+1]{
+            x[j] -= l.x[p]*x[l.i[p]];
+        }
+        x[j] /= l.x[l.p[j]];
+    }
+}
+
+/// Solves an upper triangular system. Solves U*x=b.
+/// 
+/// Solve Ux=b where x and b are dense. x=b on input, solution on output.
+/// not tested
+pub fn usolve(u: &Sprs, x: &mut Vec<f32>) {
+    for j in (0..u.n).rev(){
+        x[j] /= u.x[u.p[j+1]-1];
+        for p in u.p[j]..u.p[j+1]-1{
+            x[u.i[p]] -= u.x[p] * x[j];
+        }
+    }
+}
+
+/// Solve U'x=b where x and b are dense. x=b on input, solution on output.
+/// not tested
+pub fn utsolve(u: &Sprs, x: &mut Vec<f32>) {
+    for j in 0..u.n{
+        for p in u.p[j]..u.p[j+1]-1{
+            x[j] -= u.x[p]*x[u.i[p]];
+        }
+        x[j] /= u.x[u.p[j+1]-2];
+    }
+}
+

@@ -1,13 +1,12 @@
 //! rsparse
 //!
 //! A collection of direct methods for solving sparse linear systems implemented
-//! in Rust. This library reimplements most of the code from "Direct Methods For 
+//! in Rust. This library reimplements most of the code from "Direct Methods For
 //! Sparse Linear Systems by Dr. Timothy A. Davis."
 
 pub mod data;
 use data::Sprs;
 
-// Primary routines ------------------------------------------------------------
 /// gaxpy: Generalized A times x plus y
 /// r = A*x+y
 pub fn gaxpy(a_mat: &Sprs, x: &Vec<f32>, y: &Vec<f32>) -> Vec<f32> {
@@ -160,3 +159,43 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f32, beta: f32) -> Sprs {
     c.trim();
     return c;
 }
+
+/// x = b(P), for dense vectors x and b; P=None denotes identity
+/// not tested
+pub fn pvec(n: usize, p: &Option<Vec<usize>>, b: &Vec<f32>, x: &mut Vec<f32>) {
+    for k in 0..n {
+        if p.is_some() {
+            x[k] = b[p.as_ref().unwrap()[k]];
+        } else {
+            x[k] = b[k];
+        }
+    }
+}
+
+/// x(P) = b, for dense vectors x and b; P=None denotes identity
+/// not tested
+pub fn ipvec(n: usize, p: &Option<Vec<usize>>, b: &Vec<f32>, x: &mut Vec<f32>) {
+    for k in 0..n {
+        if p.is_some() {
+            x[p.as_ref().unwrap()[k]] = b[k];
+        } else {
+            x[k] = b[k];
+        }
+    }
+}
+
+/// Pinv = P', or P = Pinv'
+/// not tested
+pub fn pinvert(p: &Option<Vec<usize>>, n: usize) -> Option<Vec<usize>> { // pinv
+    if p.is_none() { // p = None denotes identity
+        return None;
+    }
+
+    let mut pinv = vec![0; n]; // allocate result
+    for k in 0..n {
+        pinv[p.as_ref().unwrap()[k]] = k; // invert the permutation
+    }
+
+    return Some(pinv);
+}
+

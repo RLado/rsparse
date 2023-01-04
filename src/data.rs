@@ -14,6 +14,8 @@ pub struct Sprs {
     pub n: usize,
     /// column pointers (size n+1) (Marks the index on which data starts in each column)
     pub p: Vec<usize>,
+    /// marks graph visited nodes
+    pub p_mark: Vec<bool>,
     /// row indicies, size nzmax
     pub i: Vec<usize>,
     /// numericals values, size nzmax
@@ -29,8 +31,24 @@ impl Sprs {
             m: 0,
             n: 0,
             p: Vec::new(),
+            p_mark: Vec::new(),
             i: Vec::new(),
             x: Vec::new(),
+        };
+        return s;
+    }
+
+    /// Allocates a zero filled matrix
+    ///
+    pub fn zeros(m: usize, n: usize, nzmax: usize) -> Sprs {
+        let s = Sprs {
+            nzmax: nzmax,
+            m: m,
+            n: n,
+            p: vec![0; n + 1],
+            p_mark: vec![false; n + 1],
+            i: vec![0; nzmax],
+            x: vec![0.; nzmax],
         };
         return s;
     }
@@ -47,11 +65,13 @@ impl Sprs {
         self.m = r;
         self.n = c;
         self.p = Vec::new();
+        self.p_mark = Vec::new();
         self.i = Vec::new();
         self.x = Vec::new();
 
         for i in 0..c {
             self.p.push(idxptr);
+            self.p_mark.push(false);
             for j in 0..r {
                 if a[j][i] != 0.0 {
                     self.x.push(a[j][i]);

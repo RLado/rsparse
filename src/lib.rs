@@ -49,14 +49,7 @@ pub fn cumsum(p: &mut Vec<usize>, c: &mut Vec<usize>, n: usize) -> usize {
 pub fn transpose(a: &Sprs) -> Sprs {
     let mut q;
     let mut w = vec![0; a.n];
-    let mut c = Sprs {
-        nzmax: a.p[a.n],
-        m: a.n,
-        n: a.m,
-        p: vec![0; a.m + 1],
-        i: vec![0; a.p[a.n]],
-        x: vec![0.; a.p[a.n]],
-    };
+    let mut c = Sprs::zeros(a.n, a.m, a.p[a.n]);
 
     for p in 0..a.p[a.n] {
         w[a.i[p]] += 1; // row counts
@@ -80,14 +73,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     let mut nz = 0;
     let mut w = vec![0; a.m];
     let mut x = vec![0.0; a.m];
-    let mut c = Sprs {
-        nzmax: (a.p[a.n] + b.p[b.n]),
-        m: a.m,
-        n: b.n,
-        p: vec![0; b.n + 1],
-        i: vec![0; a.p[a.n] + b.p[b.n]],
-        x: vec![0.; a.p[a.n] + b.p[b.n]],
-    };
+    let mut c = Sprs::zeros(a.m, b.n, a.p[a.n] + b.p[b.n]);
 
     for j in 0..b.n {
         c.p[j] = nz; // column j of C starts here
@@ -139,14 +125,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f32, beta: f32) -> Sprs {
     let mut nz = 0;
     let mut w = vec![0; a.m];
     let mut x = vec![0.0; a.m];
-    let mut c = Sprs {
-        nzmax: (a.p[a.n] + b.p[b.n]),
-        m: a.m,
-        n: b.n,
-        p: vec![0; b.n + 1],
-        i: vec![0; a.p[a.n] + b.p[b.n]],
-        x: vec![0.; a.p[a.n] + b.p[b.n]],
-    };
+    let mut c = Sprs::zeros(a.m, b.n, a.p[a.n] + b.p[b.n]);
 
     for j in 0..b.n {
         c.p[j] = nz; // column j of C starts here
@@ -209,14 +188,7 @@ pub fn pinvert(p: &Option<Vec<usize>>, n: usize) -> Option<Vec<usize>> {
 pub fn permute(a: &Sprs, pinv: &Option<Vec<usize>>, q: &Option<Vec<usize>>) -> Sprs {
     let mut j;
     let mut nz = 0;
-    let mut c = Sprs {
-        nzmax: a.p[a.n],
-        m: a.m,
-        n: a.n,
-        p: vec![0; a.n + 1],
-        i: vec![0; a.p[a.n]],
-        x: vec![0.; a.p[a.n]],
-    };
+    let mut c = Sprs::zeros(a.m, a.n, a.p[a.n]);
 
     for k in 0..a.n {
         c.p[k] = nz; // column k of C is column Q[k] of A
@@ -247,14 +219,7 @@ pub fn symperm(a: &Sprs, pinv: &Option<Vec<usize>>) -> Sprs {
     let mut i2;
     let mut j2;
     let mut q;
-    let mut c = Sprs {
-        nzmax: a.p[a.n],
-        m: a.m,
-        n: a.n,
-        p: vec![0; a.n + 1],
-        i: vec![0; a.p[a.n]],
-        x: vec![0.; a.p[a.n]],
-    };
+    let mut c = Sprs::zeros(a.m, a.n, a.p[a.n]);
     let mut w = vec![0; a.n];
 
     for j in 0..a.n {
@@ -318,43 +283,43 @@ pub fn norm(a: &Sprs) -> f32 {
 }
 
 /// Solves a lower triangular system. Solves L*x=b. Where x and b are dense.
-/// 
-/// The lsolve function assumes that the diagonal entry of L is always present 
-/// and is the first entry in each column. Otherwise, the row indices in each 
+///
+/// The lsolve function assumes that the diagonal entry of L is always present
+/// and is the first entry in each column. Otherwise, the row indices in each
 /// column of L can appear in any order.
-/// 
+///
 /// On input, X contains the right hand side, and on output, the solution.
 /// not tested
 pub fn lsolve(l: &Sprs, x: &mut Vec<f32>) {
-    for j in 0..l.n{
+    for j in 0..l.n {
         x[j] /= l.x[l.p[j]];
-        for p in l.p[j]+1 .. l.p[j+1]{
+        for p in l.p[j] + 1..l.p[j + 1] {
             x[l.i[p]] -= l.x[p] * x[j];
         }
     }
 }
 
 /// Solves L'*x=b. Where x and b are dense.
-/// 
+///
 /// On input, X contains the right hand side, and on output, the solution.
 /// not tested
-pub fn ltsolve(l: &Sprs, x: &mut Vec<f32>){
+pub fn ltsolve(l: &Sprs, x: &mut Vec<f32>) {
     for j in (0..l.n).rev() {
-        for p in l.p[j]+1..l.p[j+1]{
-            x[j] -= l.x[p]*x[l.i[p]];
+        for p in l.p[j] + 1..l.p[j + 1] {
+            x[j] -= l.x[p] * x[l.i[p]];
         }
         x[j] /= l.x[l.p[j]];
     }
 }
 
 /// Solves an upper triangular system. Solves U*x=b.
-/// 
+///
 /// Solve Ux=b where x and b are dense. x=b on input, solution on output.
 /// not tested
 pub fn usolve(u: &Sprs, x: &mut Vec<f32>) {
-    for j in (0..u.n).rev(){
-        x[j] /= u.x[u.p[j+1]-1];
-        for p in u.p[j]..u.p[j+1]-1{
+    for j in (0..u.n).rev() {
+        x[j] /= u.x[u.p[j + 1] - 1];
+        for p in u.p[j]..u.p[j + 1] - 1 {
             x[u.i[p]] -= u.x[p] * x[j];
         }
     }
@@ -363,11 +328,102 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f32>) {
 /// Solve U'x=b where x and b are dense. x=b on input, solution on output.
 /// not tested
 pub fn utsolve(u: &Sprs, x: &mut Vec<f32>) {
-    for j in 0..u.n{
-        for p in u.p[j]..u.p[j+1]-1{
-            x[j] -= u.x[p]*x[u.i[p]];
+    for j in 0..u.n {
+        for p in u.p[j]..u.p[j + 1] - 1 {
+            x[j] -= u.x[p] * x[u.i[p]];
         }
-        x[j] /= u.x[u.p[j+1]-2];
+        x[j] /= u.x[u.p[j + 1] - 2];
     }
 }
 
+/// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
+/// xi [n...2n-1] used as workspace.
+/// not tested
+pub fn reach(
+    l: &mut Sprs,
+    b: &Sprs,
+    k: usize,
+    xi: &mut Vec<usize>,
+    pinv: &Option<Vec<usize>>,
+) -> usize {
+    let mut top = l.n;
+
+    for p in b.p[k]..b.p[k + 1] {
+        if !l.p_mark[b.i[p]] {
+            // start a dfs at unmarked node i
+            let n = l.n;
+            top = dfs(b.i[p], l, top, xi, &n, &pinv);
+        }
+    }
+    for p in top..l.n {
+        l.p_mark[xi[p]] = !l.p_mark[xi[p]]; // restore L
+    }
+
+    return top;
+}
+
+/// depth-first-search of the graph of a matrix, starting at node j
+/// if pstack_i is used for pstack=xi[pstack_i]
+/// not tested
+pub fn dfs(
+    j: usize,
+    l: &mut Sprs,
+    top: usize,
+    xi: &mut Vec<usize>,
+    pstack_i: &usize,
+    pinv: &Option<Vec<usize>>,
+) -> usize {
+    let mut i;
+    let mut j = j;
+    let mut jnew;
+    let mut head = 0;
+    let mut done;
+    let mut p2;
+    let mut top = top;
+
+    xi[0] = j; // initialize the recursion stack
+    while head >= 0 {
+        j = xi[head as usize]; // get j from the top of the recursion stack
+        if pinv.is_some() {
+            jnew = pinv.as_ref().unwrap()[j];
+        } else {
+            jnew = j;
+        }
+        if !l.p_mark[j] {
+            l.p_mark[j] = !l.p_mark[j]; // mark node j as visited
+            if jnew < 0 {
+                xi[pstack_i + head as usize] = 0;
+            } else {
+                l.p_mark[jnew] = false; // unflip
+                xi[pstack_i + head as usize] = l.p[jnew]; // return the value of the unflip
+            }
+        }
+        done = true; // node j done if no unvisited neighbors
+        if jnew < 0 {
+            p2 = 0;
+        } else {
+            l.p_mark[jnew + 1] = false; // unflip
+            p2 = l.p[jnew + 1]; // return the value of the unflip
+        }
+        for p in xi[pstack_i + head as usize]..p2 {
+            // examine all neighbors of j
+            i = l.i[p]; // consider neighbor node i
+            if l.p_mark[i] {
+                continue; // skip visited node i
+            }
+            xi[pstack_i + head as usize] = p; // pause depth-first search of node j
+            head += 1;
+            xi[head as usize] = i; // start dfs at node i
+            done = false; // node j is not done
+            break; // break, to start dfs (i)
+        }
+        if done {
+            // depth-first search at node j is done
+            head -= 1; // remove j from the recursion stack
+            top -= 1;
+            xi[top] = j; // and place in the output stack
+        }
+    }
+
+    return top;
+}

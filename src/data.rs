@@ -13,13 +13,11 @@ pub struct Sprs {
     /// number of columns
     pub n: usize,
     /// column pointers (size n+1) (Marks the index on which data starts in each column)
-    pub p: Vec<usize>,
-    /// marks graph visited nodes
-    pub p_mark: Vec<bool>,
+    pub p: Vec<i64>,
     /// row indicies, size nzmax
     pub i: Vec<usize>,
     /// numericals values, size nzmax
-    pub x: Vec<f32>,
+    pub x: Vec<f64>,
 }
 
 impl Sprs {
@@ -31,7 +29,6 @@ impl Sprs {
             m: 0,
             n: 0,
             p: Vec::new(),
-            p_mark: Vec::new(),
             i: Vec::new(),
             x: Vec::new(),
         };
@@ -46,7 +43,6 @@ impl Sprs {
             m: m,
             n: n,
             p: vec![0; n + 1],
-            p_mark: vec![false; n + 1],
             i: vec![0; nzmax],
             x: vec![0.; nzmax],
         };
@@ -56,7 +52,7 @@ impl Sprs {
     /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the
     /// current object
     ///
-    pub fn from_vec(&mut self, a: &Vec<Vec<f32>>) {
+    pub fn from_vec(&mut self, a: &Vec<Vec<f64>>) {
         let r = a.len(); // num rows
         let c = a[0].len(); // num columns
         let mut idxptr = 0;
@@ -65,13 +61,11 @@ impl Sprs {
         self.m = r;
         self.n = c;
         self.p = Vec::new();
-        self.p_mark = Vec::new();
         self.i = Vec::new();
         self.x = Vec::new();
 
         for i in 0..c {
             self.p.push(idxptr);
-            self.p_mark.push(false);
             for j in 0..r {
                 if a[j][i] != 0.0 {
                     self.x.push(a[j][i]);
@@ -97,11 +91,11 @@ impl Sprs {
 
     /// Converts sparse matrix to dense matrix
     ///
-    pub fn todense(&self) -> Vec<Vec<f32>> {
+    pub fn todense(&self) -> Vec<Vec<f64>> {
         let mut r = vec![vec![0.; self.n]; self.m];
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
-                r[self.i[i]][j] = self.x[i];
+                r[self.i[i as usize]][j] = self.x[i as usize];
             }
         }
         return r;

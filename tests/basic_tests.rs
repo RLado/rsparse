@@ -1,19 +1,5 @@
 use rsparse;
-
-/// Assert if A is equal to B within an acceptable margin of error (tol)
-fn assert_eq_f2d_vec(a: &Vec<Vec<f64>>, b: &Vec<Vec<f64>>, tol: f64) {
-    for i in 0..a.len() {
-        for j in 0..a[0].len() {
-            let diff = f64::abs(a[i][j] - b[i][j]);
-            if diff > tol {
-                panic!(
-                    "The 2D Vec are not equal: {:?} != {:?}. -- Check failed by: {}",
-                    a, b, diff
-                );
-            }
-        }
-    }
-}
+mod utils;
 
 #[test]
 fn from_vec_1() {
@@ -243,7 +229,7 @@ fn multiply_4() {
 
     let c = rsparse::multiply(&a_sparse, &b_sparse);
 
-    assert_eq_f2d_vec(
+    utils::assert_eq_f2d_vec(
         &c.todense(),
         &vec![
             vec![2.161516, 2.0043929, 2.131185, 0.8216767, 2.2073836],

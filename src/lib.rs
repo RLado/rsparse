@@ -298,7 +298,7 @@ pub fn norm(a: &Sprs) -> f64 {
 /// column of L can appear in any order.
 ///
 /// On input, X contains the right hand side, and on output, the solution.
-/// not tested
+/// 
 pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
     for j in 0..l.n {
         x[j] /= l.x[l.p[j] as usize];
@@ -311,7 +311,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
 /// Solves L'*x=b. Where x and b are dense.
 ///
 /// On input, X contains the right hand side, and on output, the solution.
-/// not tested
+/// 
 pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
     for j in (0..l.n).rev() {
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
@@ -324,7 +324,7 @@ pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
 /// Solves an upper triangular system. Solves U*x=b.
 ///
 /// Solve Ux=b where x and b are dense. x=b on input, solution on output.
-/// not tested
+/// 
 pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
     for j in (0..u.n).rev() {
         x[j] /= u.x[(u.p[j + 1] - 1) as usize];
@@ -335,13 +335,13 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// Solve U'x=b where x and b are dense. x=b on input, solution on output.
-/// not tested
+/// 
 pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
     for j in 0..u.n {
         for p in u.p[j] as usize..(u.p[j + 1] - 1) as usize {
             x[j] -= u.x[p] * x[u.i[p]];
         }
-        x[j] /= u.x[(u.p[j + 1] - 2) as usize];
+        x[j] /= u.x[(u.p[j + 1] - 1) as usize];
     }
 }
 

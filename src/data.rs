@@ -5,6 +5,7 @@
 ///
 /// Useful example for CSR format
 /// ![CSR fig](../../../../docs/CSR_fig.png)
+#[derive(Clone)]
 pub struct Sprs {
     /// maximum number of entries
     pub nzmax: usize,
@@ -104,15 +105,16 @@ impl Sprs {
 
 /// Symbolic Cholesky, LU, or QR analysis
 /// 
+#[derive(Clone)]
 pub struct Symb{
     /// inverse row perm. for QR, fill red. perm for Chol
     pub pinv: Option<Vec<i64>>,
     /// fill-reducing column permutation for LU and QR
     pub q: Option<Vec<i64>>,
     /// elimination tree for Cholesky and QR
-    pub parent: Vec<usize>,
+    pub parent: Vec<i64>,
     /// column pointers for Cholesky, row counts for QR
-    pub cp: Vec<usize>,
+    pub cp: Vec<i64>,
     /// # of rows for QR, after adding fictitious rows
     pub m2: usize,
     /// # entries in L for LU or Cholesky; in V for QR
@@ -121,8 +123,26 @@ pub struct Symb{
     pub unz: usize,
 }
 
+impl Symb {
+    /// Initializes to empty struct
+    ///
+    pub fn new() -> Symb {
+        let s = Symb {
+            pinv: None,
+            q: None,
+            parent: Vec::new(),
+            cp: Vec::new(),
+            m2: 0,
+            lnz: 0,
+            unz: 0
+        };
+        return s;
+    }
+}
+
 /// numeric Cholesky, LU, or QR factorization
 /// 
+#[derive(Clone)]
 pub struct Nmrc{
     /// L for LU and Cholesky, V for QR
     pub l: Sprs,
@@ -132,4 +152,18 @@ pub struct Nmrc{
     pub pinv: Option<Vec<i64>>,
     /// beta [0..n-1] for QR
     pub b: Vec<f64>,
+}
+
+impl Nmrc {
+    /// Initializes to empty struct
+    ///
+    pub fn new() -> Nmrc {
+        let n = Nmrc {
+            l: Sprs::new(),
+            u: Sprs::new(),
+            pinv: None,
+            b: Vec::new()
+        };
+        return n;
+    }
 }

@@ -101,3 +101,35 @@ impl Sprs {
         return r;
     }
 }
+
+/// Symbolic Cholesky, LU, or QR analysis
+/// 
+pub struct Symb{
+    /// inverse row perm. for QR, fill red. perm for Chol
+    pub pinv: Option<Vec<i64>>,
+    /// fill-reducing column permutation for LU and QR
+    pub q: Option<Vec<i64>>,
+    /// elimination tree for Cholesky and QR
+    pub parent: Vec<usize>,
+    /// column pointers for Cholesky, row counts for QR
+    pub cp: Vec<usize>,
+    /// # of rows for QR, after adding fictitious rows
+    pub m2: usize,
+    /// # entries in L for LU or Cholesky; in V for QR
+    pub lnz: usize,
+    /// # entries in U for LU; in R for QR
+    pub unz: usize,
+}
+
+/// numeric Cholesky, LU, or QR factorization
+/// 
+pub struct Nmrc{
+    /// L for LU and Cholesky, V for QR
+    pub l: Sprs,
+    /// U for LU, R for QR, not used for Cholesky
+    pub u: Sprs,
+    /// partial pivoting for LU
+    pub pinv: Option<Vec<i64>>,
+    /// beta [0..n-1] for QR
+    pub b: Vec<f64>,
+}

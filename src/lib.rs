@@ -24,7 +24,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
 ///
-pub fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
+fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
     let mut nz = 0;
     for i in 0..n {
         p[i] = nz;
@@ -101,7 +101,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
 
 /// x = x + beta * A(:,j), where x is a dense vector and A(:,j) is sparse
 ///
-pub fn scatter(
+fn scatter(
     a: &Sprs,
     j: usize,
     beta: f64,
@@ -153,7 +153,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 
 /// x = b(P), for dense vectors x and b; P=None denotes identity
 /// not tested
-pub fn pvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
+fn pvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
     for k in 0..n {
         if p.is_some() {
             x[k] = b[p.as_ref().unwrap()[k] as usize];
@@ -165,7 +165,7 @@ pub fn pvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
 
 /// x(P) = b, for dense vectors x and b; P=None denotes identity
 /// not tested
-pub fn ipvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
+fn ipvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
     for k in 0..n {
         if p.is_some() {
             x[p.as_ref().unwrap()[k] as usize] = b[k];
@@ -177,7 +177,7 @@ pub fn ipvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
 
 /// Pinv = P', or P = Pinv'
 /// not tested
-pub fn pinvert(p: &Option<Vec<i64>>, n: usize) -> Option<Vec<i64>> {
+fn pinvert(p: &Option<Vec<i64>>, n: usize) -> Option<Vec<i64>> {
     // pinv
     if p.is_none() {
         // p = None denotes identity
@@ -194,7 +194,7 @@ pub fn pinvert(p: &Option<Vec<i64>>, n: usize) -> Option<Vec<i64>> {
 
 /// C = A(P,Q) where P and Q are permutations of 0..m-1 and 0..n-1
 /// not tested
-pub fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs {
+fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs {
     let mut j;
     let mut nz = 0;
     let mut c = Sprs::zeros(a.m, a.n, a.p[a.n] as usize);
@@ -223,7 +223,7 @@ pub fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs 
 
 /// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
 /// not tested
-pub fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
+fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
     let mut i;
     let mut i2;
     let mut j2;
@@ -370,13 +370,7 @@ fn mark(ap: &mut Vec<i64>, j: usize) {
 /// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
 /// xi [n...2n-1] used as workspace.
 /// not tested
-pub fn reach(
-    l: &mut Sprs,
-    b: &Sprs,
-    k: usize,
-    xi: &mut Vec<i64>,
-    pinv: &Option<Vec<i64>>,
-) -> usize {
+fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut Vec<i64>, pinv: &Option<Vec<i64>>) -> usize {
     let mut top = l.n;
 
     for p in b.p[k] as usize..b.p[k + 1] as usize {
@@ -396,7 +390,7 @@ pub fn reach(
 /// depth-first-search of the graph of a matrix, starting at node j
 /// if pstack_i is used for pstack=xi[pstack_i]
 /// not tested
-pub fn dfs(
+fn dfs(
     j: usize,
     l: &mut Sprs,
     top: usize,

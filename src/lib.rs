@@ -563,14 +563,14 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         n_mat.u.i[s.unz] = k; // last entry in U(:,k) is U(k,k)
         n_mat.u.x[s.unz] = pivot;
         s.unz += 1;
-        s.pinv.as_mut().unwrap()[ipiv as usize] = k as i64; // ipiv is the kth pivot row
+        n_mat.pinv.as_mut().unwrap()[ipiv as usize] = k as i64; // ipiv is the kth pivot row
         n_mat.l.i[s.lnz] = ipiv as usize; // first entry in L(:,k) is L(k,k) = 1
         n_mat.l.x[s.lnz] = 1.;
         s.lnz += 1;
         for p in top..n {
             // L(k+1:n,k) = x / pivot
             i = xi[p] as usize;
-            if s.pinv.as_ref().unwrap()[i] < 0 {
+            if n_mat.pinv.as_ref().unwrap()[i] < 0 {
                 // x(i) is an entry in L(:,k)
                 n_mat.l.i[s.lnz] = i; // save unpermuted row in L
                 n_mat.l.x[s.lnz] = x[i] / pivot; // scale pivot column
@@ -584,7 +584,7 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     n_mat.u.p[n] = s.unz as i64;
     // fix row indices of L for final Pinv
     for p in 0..s.lnz {
-        n_mat.l.i[p] = s.pinv.as_ref().unwrap()[n_mat.l.i[p]] as usize;
+        n_mat.l.i[p] = n_mat.pinv.as_ref().unwrap()[n_mat.l.i[p]] as usize;
     }
     n_mat.l.trim();
     n_mat.u.trim();
@@ -731,8 +731,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     }
     ww[len + n] = 0;
     for i in 0..=n {
-        ww[hhead + i] = -1; // degree list i is empty
-        ww[last + i] = -1;
+        ww[head + i] = -1; // degree list i is empty
+        p_v[last + i] = -1;
         ww[next + i] = -1;
         ww[hhead + i] = -1; // hash list i is empty
         ww[nv + i] = 1; // node i is just one node
@@ -762,41 +762,42 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             c.p[i] = flip(n as i64);
             ww[nv + n] += 1;
         } else {
-            if ww[head + d as usize] != -1 {
-                let wt = ww[head + d as usize];
-                ww[last + wt as usize] = i as i64;
+            if ww[(head as i64 + d) as usize] != -1 {
+                let wt = ww[(head as i64 + d) as usize];
+                p_v[(last as i64 + wt) as usize] = i as i64;
             }
-            ww[next + i] = ww[head + d as usize]; // put node i in degree list d
-            ww[head + d as usize] = i as i64;
+            ww[next + i] = ww[(head as i64 + d) as usize]; // put node i in degree list d
+            ww[(head as i64 + d) as usize] = i as i64;
         }
     }
 
     while nel < n {
         // while (selecting pivots) do
         // --- Select node of minimum approximate degree --------------------
-        let mut k = -1;
+        let mut k;
+        k = ww[head + mindeg];
         while mindeg < n && ww[head + mindeg] == -1 {
             k = ww[head + mindeg];
             mindeg += 1;
         }
 
-        if ww[next + k as usize] != -1 {
-            let wt = ww[next + k as usize];
-            ww[last + wt as usize] = -1;
+        if ww[(next as i64 + k) as usize] != -1 {
+            let wt = ww[(next as i64 + k) as usize];
+            p_v[(last as i64 + wt) as usize] = -1;
         }
-        ww[head + mindeg] = ww[next + k as usize]; // remove k from degree list
-        elenk = ww[elen + k as usize]; // elenk = |Ek|
-        nvk = ww[nv + k as usize]; // # of nodes k represents
+        ww[head + mindeg] = ww[(next as i64 + k) as usize]; // remove k from degree list
+        elenk = ww[(elen as i64 + k) as usize]; // elenk = |Ek|
+        nvk = ww[(nv as i64 + k) as usize]; // # of nodes k represents
         nel += nvk as usize; // nv[k] nodes of A eliminated
 
         // --- Garbage collection -------------------------------------------
-        if elenk > 0 && cnz as usize + mindeg >= c.nzmax {
+        if elenk > 0 && (cnz + mindeg as i64) as usize >= c.nzmax {
             for j in 0..n {
                 p = c.p[j];
                 if p >= 0 {
                     // j is a live node or element
                     c.p[j] = c.i[p as usize] as i64; // save first entry of object
-                    c.i[p as usize] = flip(j as i64) as usize; // first entry is now CS_FLIP(j)
+                    c.i[p as usize] = flip(j as i64) as usize; // first entry is now FLIP(j)
                 }
             }
             let mut q = 0;
@@ -810,7 +811,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                     c.i[q] = c.p[j as usize] as usize; // restore first entry of object
                     c.p[j as usize] = q as i64; // new pointer to object j
                     q += 1;
-                    for _ in 0..ww[len + j as usize] - 1 {
+                    for _ in 0..ww[(len as i64 + j) as usize] - 1 {
                         c.i[q] = c.i[p as usize];
                         q += 1;
                         p += 1;
@@ -822,7 +823,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         // --- Construct new element ----------------------------------------
         let mut dk = 0;
 
-        ww[nv + k as usize] = -nvk; // flag k as in Lk
+        ww[(nv as i64 + k) as usize] = -nvk; // flag k as in Lk
+        dbg!(k);
         p = c.p[k as usize];
         if elenk == 0 {
             // do in place if elen[k] == 0
@@ -835,69 +837,70 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             if k1 > elenk as usize {
                 e = k; // search the nodes in k
                 pj = p; // list of nodes starts at Ci[pj]
-                ln = ww[len + k as usize] - elenk; // length of list of nodes in k
+                ln = ww[(len as i64 + k) as usize] - elenk; // length of list of nodes in k
             } else {
                 e = c.i[p as usize] as i64; // search the nodes in e
                 p += 1;
                 pj = c.p[e as usize];
-                ln = ww[len + e as usize]; // length of list of nodes in e
+                ln = ww[(len as i64 + e) as usize]; // length of list of nodes in e
             }
             for _ in 1..=ln {
                 i = c.i[pj as usize] as i64;
                 pj += 1;
-                nvi = ww[nv + i as usize];
+                nvi = ww[(nv as i64 + i) as usize];
                 if nvi <= 0 {
                     continue; // node i dead, or seen
                 }
                 dk += nvi; // degree[Lk] += size of node i
-                ww[nv + i as usize] = -nvi; // negate nv[i] to denote i in Lk
+                ww[(nv as i64 + i) as usize] = -nvi; // negate nv[i] to denote i in Lk
                 pk2 += 1;
                 c.i[pk2 as usize] = i as usize; // place i in Lk
-                if ww[next + i as usize] != -1 {
+                if ww[(next as i64 + i) as usize] != -1 {
                     let wt = ww[next + 1];
-                    ww[last + wt as usize] = ww[last + i as usize];
+                    p_v[(last as i64 + wt) as usize] = p_v[last + i as usize];
                 }
-                if ww[last + i as usize] != -1 {
+                if p_v[last + i as usize] != -1 {
                     // remove i from degree list
-                    let wt = ww[last + 1];
-                    ww[next + wt as usize] = ww[next + 1];
+                    let wt = p_v[last + 1];
+                    ww[(next as i64 + wt) as usize] = ww[next + 1];
                 } else {
                     let wt = ww[degree + i as usize];
-                    ww[head + wt as usize] = ww[next + i as usize];
+                    ww[(head as i64 + wt) as usize] = ww[next + i as usize];
                 }
             }
             if e != k {
                 c.p[e as usize] = flip(k); // absorb e into k
-                ww[w + e as usize] = 0; // e is now a dead element
+                ww[(w as i64 + e) as usize] = 0; // e is now a dead element
             }
         }
         if elenk != 0 {
             cnz = pk2; // Ci [cnz...nzmax] is free
         }
-        ww[degree + k as usize] = dk; // external degree of k - |Lk\i|
+        ww[(degree as i64 + k) as usize] = dk; // external degree of k - |Lk\i|
         c.p[k as usize] = pk1; // element k is in Ci[pk1..pk2-1]
-        ww[len + k as usize] = pk2 - pk1;
-        ww[elen + k as usize] = -2; // k is now an element
+        ww[(len as i64 + k) as usize] = pk2 - pk1;
+        ww[(elen as i64 + k) as usize] = -2; // k is now an element
 
         // --- Find set differences -----------------------------------------
         mark_v = wclear(mark_v, lemax, &mut ww, w, n); // clear w if necessary
         for pk in pk1..pk2 {
             // scan1: find |Le\Lk|
             i = c.i[pk as usize] as i64;
-            eln = ww[elen + i as usize];
+            eln = ww[(elen as i64 + i) as usize];
             if eln <= 0 {
                 continue; // skip if elen[i] empty
             }
-            nvi = -ww[nv + i as usize]; // nv [i] was negated
+            nvi = -ww[(nv as i64 + i) as usize]; // nv [i] was negated
             wnvi = mark_v - nvi;
             for p in c.p[i as usize] as usize..=(c.p[i as usize] + eln - 1) as usize {
                 // scan Ei
                 e = c.i[p] as i64;
-                if ww[w + e as usize] >= mark_v {
-                    ww[w + e as usize] -= nvi; // decrement |Le\Lk|
-                } else if ww[w + e as usize] != 0 {
+                if ww[(w as i64 + e) as usize] >= mark_v {
+                    ww[(w as i64 + e) as usize] -= nvi; // decrement |Le\Lk|
+                } else if ww[(w as i64 + e) as usize] != 0 {
                     // ensure e is a live element
-                    ww[w + e as usize] = ww[degree + e as usize] + wnvi; // 1st time e seen in scan 1
+                    ww[(w as i64 + e) as usize] = ww[(degree as i64 + e) as usize] + wnvi;
+                    // 1st time e seen in scan 1
                 }
             }
         }
@@ -906,16 +909,16 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             // scan2: degree update
             i = c.i[pk] as i64; // consider node i in Lk
             p1 = c.p[i as usize];
-            p2 = p1 + ww[elen + i as usize] - 1;
+            p2 = p1 + ww[(elen as i64 + i) as usize] - 1;
             pn = p1;
             h = 0;
             d = 0;
             for p in p1 as usize..=p2 as usize {
                 // scan Ei
                 e = c.i[p as usize] as i64;
-                if ww[w + e as usize] != 0 {
+                if ww[(w as i64 + e) as usize] != 0 {
                     // e is an unabsorbed element
-                    dext = ww[w + e as usize] - mark_v; // dext = |Le\Lk|
+                    dext = ww[(w as i64 + e) as usize] - mark_v; // dext = |Le\Lk|
                     if dext > 0 {
                         d += dext; // sum up the set differences
                         c.i[pn as usize] = e as usize; // keep e in Ei
@@ -923,17 +926,17 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                         h += e; // compute the hash of node i
                     } else {
                         c.p[e as usize] = flip(k); // aggressive absorb. e->k
-                        ww[w + e as usize] = 0; // e is a dead element
+                        ww[(w as i64 + e) as usize] = 0; // e is a dead element
                     }
                 }
             }
-            ww[elen + i as usize] = pn - p1 + 1; // elen[i] = |Ei|
+            ww[(elen as i64 + i) as usize] = pn - p1 + 1; // elen[i] = |Ei|
             p3 = pn;
-            p4 = p1 + ww[len + i as usize];
+            p4 = p1 + ww[(len as i64 + i) as usize];
             for p in p2 + 1..p4 {
                 // prune edges in Ai
                 j = c.i[p as usize] as i64;
-                nvj = ww[nv + j as usize];
+                nvj = ww[(nv as i64 + j) as usize];
                 if nvj <= 0 {
                     continue; // node j dead or in Lk
                 }
@@ -945,25 +948,26 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             if d == 0 {
                 // check for mass elimination
                 c.p[i as usize] = flip(k); // absorb i into k
-                nvi = -ww[nv + i as usize];
+                nvi = -ww[(nv as i64 + i) as usize];
                 dk -= nvi; // |Lk| -= |i|
                 nvk += nvi; // |k| += nv[i]
                 nel += nvi as usize;
-                ww[nv + i as usize] = 0;
-                ww[elen + i as usize] = -1; // node i is dead
+                ww[(nv as i64 + i) as usize] = 0;
+                ww[(elen as i64 + i) as usize] = -1; // node i is dead
             } else {
-                ww[degree + i as usize] = std::cmp::min(ww[degree + i as usize], d); // update degree(i)
+                ww[(degree as i64 + i) as usize] =
+                    std::cmp::min(ww[(degree as i64 + i) as usize], d); // update degree(i)
                 c.i[pn as usize] = c.i[p3 as usize]; // move first node to end
                 c.i[p3 as usize] = c.i[p1 as usize]; // move 1st el. to end of Ei
                 c.i[p1 as usize] = k as usize; // add k as 1st element in of Ei
-                ww[len + i as usize] = pn - p1 + 1; // new len of adj. list of node i
+                ww[(len as i64 + i) as usize] = pn - p1 + 1; // new len of adj. list of node i
                 h %= n as i64; // finalize hash of i
-                ww[next + i as usize] = ww[hhead + h as usize]; // place i in hash bucket
-                ww[hhead + h as usize] = i;
-                ww[last + i as usize] = h; // save hash of i in last[i]
+                ww[(next as i64 + i) as usize] = ww[(hhead as i64 + h) as usize]; // place i in hash bucket
+                ww[(hhead as i64 + h) as usize] = i;
+                p_v[(last as i64 + i) as usize] = h; // save hash of i in last[i]
             }
         } // scan2 is done
-        ww[degree + k as usize] = dk; // finalize |Lk|
+        ww[(degree as i64 + k) as usize] = dk; // finalize |Lk|
         lemax = std::cmp::max(lemax, dk);
         mark_v = wclear(mark_v + lemax, lemax, &mut ww, w, n); // clear w
 
@@ -973,13 +977,13 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             if ww[nv + 1] >= 0 {
                 continue; // skip if i is dead
             }
-            h = ww[last + i as usize]; // scan hash bucket of node i
-            i = ww[hhead + h as usize];
-            ww[hhead + h as usize] = -1; // hash bucket will be empty
+            h = p_v[(last as i64 + i) as usize]; // scan hash bucket of node i
+            i = ww[(hhead as i64 + h) as usize];
+            ww[(hhead as i64 + h) as usize] = -1; // hash bucket will be empty
 
-            while i != -1 && ww[next + i as usize] != -1 {
-                ln = ww[len + i as usize];
-                eln = ww[elen + i as usize];
+            while i != -1 && ww[(next as i64 + i) as usize] != -1 {
+                ln = ww[(len as i64 + i) as usize];
+                eln = ww[(elen as i64 + i) as usize];
                 for p in c.p[i as usize] + 1..=c.p[i as usize] + ln - 1 {
                     ww[w + c.i[p as usize]] = mark_v;
                 }
@@ -989,7 +993,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 j = ww[next + 1];
                 while j != -1 {
                     // compare i with all j
-                    ok = ww[len + j as usize] == ln && ww[elen + j as usize] == eln;
+                    ok = ww[(len as i64 + j) as usize] == ln
+                        && ww[(elen as i64 + j) as usize] == eln;
 
                     p = c.p[j as usize] + 1;
                     while ok && p <= c.p[j as usize] + ln - 1 {
@@ -1003,19 +1008,19 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                     if ok {
                         // i and j are identical
                         c.p[j as usize] = flip(i); // absorb j into i
-                        ww[nv + i as usize] += ww[nv + j as usize];
-                        ww[nv + j as usize] = 0;
-                        ww[elen + j as usize] = -1; // node j is dead
-                        j = ww[next + j as usize]; // delete j from hash bucket
-                        ww[next + jlast as usize] = j;
+                        ww[(nv as i64 + i) as usize] += ww[(nv as i64 + j) as usize];
+                        ww[(nv as i64 + j) as usize] = 0;
+                        ww[(elen as i64 + j) as usize] = -1; // node j is dead
+                        j = ww[(next as i64 + j) as usize]; // delete j from hash bucket
+                        ww[(next as i64 + jlast) as usize] = j;
                     } else {
                         jlast = j; // j and i are different
-                        j = ww[next + j as usize];
+                        j = ww[(next as i64 + j) as usize];
                     }
                 }
 
                 // increment while loop
-                i = ww[next + i as usize];
+                i = ww[(next as i64 + i) as usize];
                 mark_v += 1;
             }
         }
@@ -1025,31 +1030,31 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         for pk in pk1..pk2 {
             // finalize Lk
             i = c.i[pk as usize] as i64;
-            nvi = -ww[nv + i as usize];
+            nvi = -ww[(nv as i64 + i) as usize];
             if nvi <= 0 {
                 continue; // skip if i is dead
             }
-            ww[nv + i as usize] = nvi; // restore nv[i]
-            d = ww[degree + i as usize] + dk - nvi; // compute external degree(i)
+            ww[(nv as i64 + i) as usize] = nvi; // restore nv[i]
+            d = ww[(degree as i64 + i) as usize] + dk - nvi; // compute external degree(i)
             d = std::cmp::min(d, n as i64 - nel as i64 - nvi);
-            if ww[head + d as usize] != -1 {
-                let wt = ww[head + d as usize];
-                ww[last + wt as usize] = i;
+            if ww[(head as i64 + d) as usize] != -1 {
+                let wt = ww[(head as i64 + d) as usize];
+                p_v[(last as i64 + wt) as usize] = i;
             }
-            ww[next + i as usize] = ww[head + d as usize]; // put i back in degree list
-            ww[last + i as usize] = -1;
-            ww[head + d as usize] = i;
+            ww[(next as i64 + i) as usize] = ww[(head as i64 + d) as usize]; // put i back in degree list
+            p_v[(last as i64 + i) as usize] = -1;
+            ww[(head as i64 + d) as usize] = i;
             mindeg = std::cmp::min(mindeg, d as usize); // find new minimum degree
-            ww[degree + i as usize] = d;
+            ww[(degree as i64 + i) as usize] = d;
             c.i[p as usize] = i as usize; // place i in Lk
             p += 1;
         }
-        ww[nv + k as usize] = nvk; // # nodes absorbed into k
-        ww[len + k as usize] = p - pk1;
-        if ww[len + k as usize] == 0 {
+        ww[(nv as i64 + k) as usize] = nvk; // # nodes absorbed into k
+        ww[(len as i64 + k) as usize] = p - pk1;
+        if ww[(len as i64 + k) as usize] == 0 {
             // length of adj list of element k
             c.p[k as usize] = -1; // k is a root of the tree
-            ww[w + k as usize] = 0; // k is now a dead element
+            ww[(w as i64 + k) as usize] = 0; // k is now a dead element
         }
         if elenk != 0 {
             cnz = p; // free unused space in Lk
@@ -1068,8 +1073,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         if ww[nv + j] > 0 {
             continue; // skip if j is an element
         }
-        ww[next + j] = ww[head + c.p[j] as usize]; // place j in list of its parent
-        ww[head + c.p[j] as usize] = j as i64;
+        ww[next + j] = ww[(head as i64 + c.p[j]) as usize]; // place j in list of its parent
+        ww[(head as i64 + c.p[j]) as usize] = j as i64;
     }
     for e in (0..=n).rev() {
         // place elements in lists
@@ -1077,8 +1082,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             continue; // skip unless e is an element
         }
         if c.p[e] != -1 {
-            ww[next + e] = ww[head + c.p[e] as usize]; // place e in list of its parent
-            ww[head + c.p[e] as usize] = e as i64;
+            ww[next + e] = ww[(head as i64 + c.p[e]) as usize]; // place e in list of its parent
+            ww[(head as i64 + c.p[e]) as usize] = e as i64;
         }
     }
     let mut k = 0;
@@ -1157,16 +1162,16 @@ fn tdfs(
     ww[stack] = j; // place j on the stack
     while top >= 0 {
         // while (stack is not empty)
-        p = ww[stack + top as usize]; // p = top of stack
-        i = ww[head + p as usize]; // i = youngest child of p
+        p = ww[(stack as i64 + top) as usize]; // p = top of stack
+        i = ww[(head as i64 + p) as usize]; // i = youngest child of p
         if i == -1 {
             top -= 1; // p has no unordered children left
             post[k as usize] = p; // node p is the kth postordered node
             k += 1;
         } else {
-            ww[head + p as usize] = ww[next + i as usize]; // remove i from children of p
+            ww[(head as i64 + p) as usize] = ww[(next as i64 + i) as usize]; // remove i from children of p
             top += 1;
-            ww[stack + top as usize] = i; // start dfs on child node i
+            ww[(stack as i64 + top) as usize] = i; // start dfs on child node i
         }
     }
     return k;
@@ -1206,8 +1211,8 @@ fn etree(a: &Sprs, ata: bool) -> Vec<i64> {
             }
             while i != -1 && i < k as i64 {
                 // traverse from i to k
-                inext = w[ancestor + i as usize]; // inext = ancestor of i
-                w[ancestor + i as usize] = k as i64; // path compression
+                inext = w[(ancestor as i64 + i) as usize]; // inext = ancestor of i
+                w[(ancestor as i64 + i) as usize] = k as i64; // path compression
                 if inext == -1 {
                     parent[i as usize] = k as i64; // no anc., parent is k
                 }
@@ -1241,8 +1246,8 @@ fn post(n: usize, parent: &Vec<i64>) -> Vec<i64> {
         if parent[j] == -1 {
             continue; // j is a root
         }
-        w[next + j] = w[head + parent[j] as usize]; // add j to list of its parent
-        w[head + parent[j] as usize] = j as i64;
+        w[next + j] = w[(head as i64 + parent[j]) as usize]; // add j to list of its parent
+        w[(head as i64 + parent[j]) as usize] = j as i64;
     }
     for j in 0..n {
         if parent[j] != -1 {
@@ -1270,29 +1275,29 @@ fn cedge(
     let mut sparent;
     let jprev;
 
-    if i <= j || w[first + j as usize] <= w[maxfirst + i as usize] {
+    if i <= j || w[(first as i64 + j) as usize] <= w[(maxfirst as i64 + i) as usize] {
         return;
     }
-    w[maxfirst + i as usize] = w[first + j as usize]; // update max first[j] seen so far
-    jprev = w[prevleaf + i as usize]; // j is a leaf of the ith subtree
+    w[(maxfirst as i64 + i) as usize] = w[(first as i64 + j) as usize]; // update max first[j] seen so far
+    jprev = w[(prevleaf as i64 + i) as usize]; // j is a leaf of the ith subtree
     delta_colcount[j as usize] += 1; // A(i,j) is in the skeleton matrix
     if jprev != -1 {
         // q = least common ancestor of jprev and j
         q = jprev;
-        while q != w[ancestor + q as usize] {
+        while q != w[(ancestor as i64 + q) as usize] {
             // increment
-            q = w[ancestor + q as usize];
+            q = w[(ancestor as i64 + q) as usize];
         }
         s = jprev;
         while s != q {
-            sparent = w[ancestor + s as usize]; // path compression
-            w[ancestor + s as usize] = q;
+            sparent = w[(ancestor as i64 + s) as usize]; // path compression
+            w[(ancestor as i64 + s) as usize] = q;
             // increment
             s = sparent;
         }
         delta_colcount[q as usize] -= 1; // decrement to account for overlap in q
     }
-    w[prevleaf + i as usize] = j; // j is now previous leaf of ith subtree
+    w[(prevleaf as i64 + i) as usize] = j; // j is now previous leaf of ith subtree
 }
 
 /// colcount = column counts of LL'=A or LL'=A'A, given parent & post ordering
@@ -1325,14 +1330,14 @@ fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
     for k in 0..n {
         // find first [j]
         j = post[k];
-        if w[first + j as usize] == -1 {
+        if w[(first as i64 + j) as usize] == -1 {
             // delta[j]=1 if j is a leaf
             delta_colcount[j as usize] = 1;
         } else {
             delta_colcount[j as usize] = 0;
         }
-        while j != -1 && w[first + j as usize] == -1 {
-            w[first + j as usize] = k as i64;
+        while j != -1 && w[(first as i64 + j) as usize] == -1 {
+            w[(first as i64 + j) as usize] = k as i64;
 
             // increment
             j = parent[j as usize];
@@ -1346,7 +1351,7 @@ fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
         for i in 0..m {
             k = n; // k = least postordered column in row i
             for p in at.p[i]..at.p[i + 1] {
-                k = std::cmp::min(k, w[at.i[p as usize] as usize] as usize);
+                k = std::cmp::min(k, w[at.i[p as usize]] as usize);
             }
             w[next + i] = w[head + k]; // place row i in link list k
             w[head + k] = i as i64;
@@ -1377,7 +1382,7 @@ fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
                 }
 
                 // increment
-                ii = w[next + ii as usize];
+                ii = w[(next as i64 + ii) as usize];
             }
         } else {
             for p in at.p[j as usize]..at.p[j as usize + 1] {
@@ -1394,13 +1399,13 @@ fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
             }
         }
         if parent[j as usize] != -1 {
-            w[ancestor + j as usize] = parent[j as usize];
+            w[(ancestor as i64 + j) as usize] = parent[j as usize];
         }
     }
     for j in 0..n {
         // sum up delta's of each child
         if parent[j] != -1 {
-            delta_colcount[parent[j as usize] as usize] += delta_colcount[j as usize];
+            delta_colcount[parent[j] as usize] += delta_colcount[j as usize];
         }
     }
 
@@ -1448,12 +1453,12 @@ fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Optio
         if k == -1 {
             continue; // row i is empty
         }
-        if w[nque + k as usize] == 0 {
-            w[tail + k as usize] = i as i64; // first row in queue k
+        if w[(nque as i64 + k) as usize] == 0 {
+            w[(tail as i64 + k) as usize] = i as i64; // first row in queue k
         }
-        w[nque + k as usize] += 1;
-        w[next + i] = w[head + k as usize]; // put i at head of queue k
-        w[head + k as usize] = i as i64;
+        w[(nque as i64 + k) as usize] += 1;
+        w[next + i] = w[(head as i64 + k) as usize]; // put i at head of queue k
+        w[(head as i64 + k) as usize] = i as i64;
     }
     *vnz = 0;
     *m2 = m;
@@ -1474,13 +1479,13 @@ fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Optio
         *vnz += w[nque + k] as usize; // nque [k] = nnz (V(k+1:m,k))
         let pa = parent[k]; // move all rows to parent of k
         if pa != -1 {
-            if w[nque + pa as usize] == 0 {
-                w[tail + pa as usize] = w[tail + k];
+            if w[(nque as i64 + pa) as usize] == 0 {
+                w[(tail as i64 + pa) as usize] = w[tail + k];
             }
-            let tw = w[tail + k as usize];
-            w[next + tw as usize] = w[head + pa as usize];
-            w[head + pa as usize] = w[next + i as usize];
-            w[nque + pa as usize] += w[nque + k as usize];
+            let tw = w[tail + k];
+            w[(next as i64 + tw) as usize] = w[(head as i64 + pa) as usize];
+            w[(head as i64 + pa) as usize] = w[(next as i64 + i) as usize];
+            w[(nque as i64 + pa) as usize] += w[nque + k];
         }
     }
     let mut k = n - 1;

@@ -7,11 +7,11 @@ fn from_vec_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a);
     // Checking data
-    assert_eq!(a_sparse.x, vec!(1., 9., 9., 2., 9.));
+    assert_eq!(a_sparse.x, vec![1., 9., 9., 2., 9.]);
     // Checking indices
-    assert_eq!(a_sparse.i, vec!(1, 2, 2, 0, 2));
+    assert_eq!(a_sparse.i, vec![1, 2, 2, 0, 2]);
     // Checking indptr
-    assert_eq!(a_sparse.p, vec!(0, 2, 3, 5));
+    assert_eq!(a_sparse.p, vec![0, 2, 3, 5]);
 }
 
 #[test]

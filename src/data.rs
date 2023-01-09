@@ -76,6 +76,7 @@ impl Sprs {
             }
         }
         self.p.push(idxptr);
+        self.trim();
     }
 
     /// Trim 0 elements from the sparse matrix

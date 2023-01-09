@@ -774,9 +774,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     while nel < n {
         // while (selecting pivots) do
         // --- Select node of minimum approximate degree --------------------
-        let mut k;
-        k = ww[head + mindeg];
-        while mindeg < n && ww[head + mindeg] == -1 {
+        let mut k = -1;
+        while mindeg < n && k == -1 {
             k = ww[head + mindeg];
             mindeg += 1;
         }
@@ -824,7 +823,6 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         let mut dk = 0;
 
         ww[(nv as i64 + k) as usize] = -nvk; // flag k as in Lk
-        dbg!(k);
         p = c.p[k as usize];
         if elenk == 0 {
             // do in place if elen[k] == 0
@@ -853,16 +851,16 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 }
                 dk += nvi; // degree[Lk] += size of node i
                 ww[(nv as i64 + i) as usize] = -nvi; // negate nv[i] to denote i in Lk
-                pk2 += 1;
                 c.i[pk2 as usize] = i as usize; // place i in Lk
+                pk2 += 1;
                 if ww[(next as i64 + i) as usize] != -1 {
-                    let wt = ww[next + 1];
+                    let wt = ww[(next as i64 + i) as usize];
                     p_v[(last as i64 + wt) as usize] = p_v[last + i as usize];
                 }
-                if p_v[last + i as usize] != -1 {
+                if p_v[(last as i64 + i) as usize] != -1 {
                     // remove i from degree list
-                    let wt = p_v[last + 1];
-                    ww[(next as i64 + wt) as usize] = ww[next + 1];
+                    let wt = p_v[(last as i64 + i) as usize];
+                    ww[(next as i64 + wt) as usize] = ww[(next as i64 + i) as usize];
                 } else {
                     let wt = ww[degree + i as usize];
                     ww[(head as i64 + wt) as usize] = ww[next + i as usize];
@@ -904,6 +902,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 }
             }
         }
+
         // --- Degree update ------------------------------------------------
         for pk in pk1 as usize..pk2 as usize {
             // scan2: degree update
@@ -913,7 +912,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             pn = p1;
             h = 0;
             d = 0;
-            for p in p1 as usize..=p2 as usize {
+            for p in p1..=p2 {
                 // scan Ei
                 e = c.i[p as usize] as i64;
                 if ww[(w as i64 + e) as usize] != 0 {
@@ -974,7 +973,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         // --- Supernode detection ------------------------------------------
         for pk in pk1 as usize..pk2 as usize {
             i = c.i[pk] as i64;
-            if ww[nv + 1] >= 0 {
+            if ww[(nv as i64 + i) as usize] >= 0 {
                 continue; // skip if i is dead
             }
             h = p_v[(last as i64 + i) as usize]; // scan hash bucket of node i
@@ -990,7 +989,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 jlast = i;
 
                 let mut ok;
-                j = ww[next + 1];
+                j = ww[(next as i64 + i) as usize];
                 while j != -1 {
                     // compare i with all j
                     ok = ww[(len as i64 + j) as usize] == ln

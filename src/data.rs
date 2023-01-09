@@ -88,7 +88,7 @@ impl Sprs {
                 self.i.remove(i);
             }
         }
-        self.nzmax = self.p.len();
+        self.nzmax = self.x.len();
     }
 
     /// Converts sparse matrix to dense matrix

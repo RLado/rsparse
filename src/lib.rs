@@ -1,8 +1,8 @@
 //! rsparse
 //!
 //! A collection of direct methods for solving sparse linear systems implemented
-//! in Rust. This library reimplements most of the code from "Direct Methods For
-//! Sparse Linear Systems by Dr. Timothy A. Davis."
+//! in Rust. This library implements the algorithms described in "Direct Methods
+//! For Sparse Linear Systems by Dr. Timothy A. Davis."
 //!
 //! MIT License
 //! Copyright (c) 2023 Ricard Lado
@@ -152,7 +152,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 }
 
 /// x = b(P), for dense vectors x and b; P=None denotes identity
-/// not tested
+///
 fn pvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
     for k in 0..n {
         if p.is_some() {
@@ -164,7 +164,7 @@ fn pvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
 }
 
 /// x(P) = b, for dense vectors x and b; P=None denotes identity
-/// not tested
+///
 fn ipvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
     for k in 0..n {
         if p.is_some() {
@@ -176,7 +176,7 @@ fn ipvec(n: usize, p: &Option<Vec<i64>>, b: &Vec<f64>, x: &mut Vec<f64>) {
 }
 
 /// Pinv = P', or P = Pinv'
-/// not tested
+///
 fn pinvert(p: &Option<Vec<i64>>, n: usize) -> Option<Vec<i64>> {
     // pinv
     if p.is_none() {
@@ -193,7 +193,7 @@ fn pinvert(p: &Option<Vec<i64>>, n: usize) -> Option<Vec<i64>> {
 }
 
 /// C = A(P,Q) where P and Q are permutations of 0..m-1 and 0..n-1
-/// not tested
+///
 fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs {
     let mut j;
     let mut nz = 0;
@@ -222,7 +222,7 @@ fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs {
 }
 
 /// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
-/// not tested
+///
 fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
     let mut i;
     let mut i2;
@@ -277,8 +277,10 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
     return c;
 }
 
-/// Computes the norm of a sparse matrix
-/// not tested
+/// Computes the 1-norm of a sparse matrix
+///
+/// 1-norm of a sparse matrix = max (sum (abs (A))), largest column sum
+/// 
 pub fn norm(a: &Sprs) -> f64 {
     let mut norm_r = 0.;
     for j in 0..a.n {
@@ -369,7 +371,7 @@ fn mark(ap: &mut Vec<i64>, j: usize) {
 
 /// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
 /// xi [n...2n-1] used as workspace.
-/// not tested
+///
 fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut Vec<i64>, pinv: &Option<Vec<i64>>) -> usize {
     let mut top = l.n;
 
@@ -389,7 +391,7 @@ fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut Vec<i64>, pinv: &Option<Vec<
 
 /// depth-first-search of the graph of a matrix, starting at node j
 /// if pstack_i is used for pstack=xi[pstack_i]
-/// not tested
+///
 fn dfs(
     j: usize,
     l: &mut Sprs,
@@ -452,8 +454,8 @@ fn dfs(
 }
 
 /// Solve Lx=b(:,k), leaving pattern in xi[top..n-1], values scattered in x.
-/// not tested
-pub fn splsolve(
+///
+fn splsolve(
     l: &mut Sprs,
     b: &mut Sprs,
     k: usize,
@@ -488,8 +490,8 @@ pub fn splsolve(
     return top; // return top of stack
 }
 
-/// [L,U,Pinv]=lu(A, [Q lnz unz]). lnz and unz can be guess
-/// not tested
+/// L,U,Pinv = lu(A, [Q lnz unz]). lnz and unz can be guess
+///
 pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     let n = a.n;
     let mut col;
@@ -593,7 +595,13 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 }
 
 /// x=A\b where A is unsymmetric; b (dense) overwritten with solution
-/// not tested
+///
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
+///
 pub fn lusol(a: &mut Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     let mut x = vec![0.; a.n];
     let mut s;
@@ -608,8 +616,14 @@ pub fn lusol(a: &mut Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
 }
 
 /// symbolic analysis for QR or LU
-/// not tested
-fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
+///
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
+///
+pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
     let mut s = Symb::new();
     let pst;
 
@@ -641,13 +655,12 @@ fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
 /// p = amd(A+A') if symmetric is true, or amd(A'A) otherwise
 /// Parameters:
 ///
-/// Input, int ORDER:
-/// -1:natural,
-/// 0:Cholesky,  
-/// 1:LU,
-/// 2:QR
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
 ///
-/// not tested
 fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     let mut dense;
     let mut c;
@@ -1097,7 +1110,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
 }
 
 /// drop entries for which fkeep(A(i,j)) is false; return nz if OK, else -1
-/// not tested
+///
 fn fkeep(a: &mut Sprs, f: &dyn Fn(i64, i64, f64) -> bool) -> i64 {
     let mut p;
     let mut nz = 0;
@@ -1128,7 +1141,7 @@ fn diag(i: i64, j: i64, _: f64) -> bool {
 }
 
 /// clears W
-/// not tested
+///
 fn wclear(mark_v: i64, lemax: i64, ww: &mut Vec<i64>, w: usize, n: usize) -> i64 {
     let mut mark = mark_v;
     if mark < 2 || (mark + lemax < 0) {
@@ -1143,7 +1156,7 @@ fn wclear(mark_v: i64, lemax: i64, ww: &mut Vec<i64>, w: usize, n: usize) -> i64
 }
 
 /// depth-first search and postorder of a tree rooted at node j (for fn amd())
-/// not tested
+///
 fn tdfs(
     j: i64,
     k: i64,
@@ -1177,7 +1190,7 @@ fn tdfs(
 }
 
 /// compute the etree of A (using triu(A), or A'A without forming A'A
-/// not tested
+///
 fn etree(a: &Sprs, ata: bool) -> Vec<i64> {
     let mut parent = vec![0; a.n];
     let mut w;
@@ -1228,7 +1241,7 @@ fn etree(a: &Sprs, ata: bool) -> Vec<i64> {
 }
 
 /// post order a forest
-/// not tested
+///
 fn post(n: usize, parent: &Vec<i64>) -> Vec<i64> {
     let mut k = 0;
     let mut post = vec![0; n]; // allocate result
@@ -1258,7 +1271,7 @@ fn post(n: usize, parent: &Vec<i64>) -> Vec<i64> {
 }
 
 /// process edge (j,i) of the matrix
-/// not tested
+///
 fn cedge(
     j: i64,
     i: i64,
@@ -1300,7 +1313,7 @@ fn cedge(
 }
 
 /// colcount = column counts of LL'=A or LL'=A'A, given parent & post ordering
-/// not tested
+///
 fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
     let at: Sprs;
     let m = a.m;
@@ -1412,7 +1425,7 @@ fn counts(a: &Sprs, parent: &Vec<i64>, post: &Vec<i64>, ata: bool) -> Vec<i64> {
 }
 
 /// compute vnz, Pinv, leftmost, m2 from A and parent
-/// not tested
+///
 fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Option<Vec<i64>> {
     let n = a.n;
     let m = a.m;

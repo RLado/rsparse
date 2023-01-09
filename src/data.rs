@@ -1,10 +1,10 @@
-//! Primitive data structures for rsparse
+//! Data structures for rsparse
 //!
 
 /// Matrix in compressed sparse column (CSC) format
 ///
 /// Useful example for CSR format
-/// ![CSR fig](../../../../docs/CSR_fig.png)
+/// ![CSR_fig](https://user-images.githubusercontent.com/25719985/211358936-e54efcb3-2b63-44e7-9618-871cbcdcdd36.png)
 #[derive(Clone, Debug)]
 pub struct Sprs {
     /// maximum number of entries
@@ -115,11 +115,11 @@ pub struct Symb{
     pub parent: Vec<i64>,
     /// column pointers for Cholesky, row counts for QR
     pub cp: Vec<i64>,
-    /// # of rows for QR, after adding fictitious rows
+    /// nº of rows for QR, after adding fictitious rows
     pub m2: usize,
-    /// # entries in L for LU or Cholesky; in V for QR
+    /// nº entries in L for LU or Cholesky; in V for QR
     pub lnz: usize,
-    /// # entries in U for LU; in R for QR
+    /// nº entries in U for LU; in R for QR
     pub unz: usize,
 }
 
@@ -140,7 +140,7 @@ impl Symb {
     }
 }
 
-/// numeric Cholesky, LU, or QR factorization
+/// Numeric Cholesky, LU, or QR factorization
 /// 
 #[derive(Clone, Debug)]
 pub struct Nmrc{

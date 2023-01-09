@@ -5,7 +5,7 @@
 ///
 /// Useful example for CSR format
 /// ![CSR fig](../../../../docs/CSR_fig.png)
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Sprs {
     /// maximum number of entries
     pub nzmax: usize,
@@ -105,7 +105,7 @@ impl Sprs {
 
 /// Symbolic Cholesky, LU, or QR analysis
 /// 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Symb{
     /// inverse row perm. for QR, fill red. perm for Chol
     pub pinv: Option<Vec<i64>>,
@@ -142,7 +142,7 @@ impl Symb {
 
 /// numeric Cholesky, LU, or QR factorization
 /// 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Nmrc{
     /// L for LU and Cholesky, V for QR
     pub l: Sprs,

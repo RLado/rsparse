@@ -73,7 +73,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     let mut nz = 0;
     let mut w = vec![0; a.m];
     let mut x = vec![0.0; a.m];
-    let mut c = Sprs::zeros(a.m, b.n, (a.p[a.n] + b.p[b.n]) as usize);
+    let mut c = Sprs::zeros(a.m, b.n, 2 * (a.p[a.n] + b.p[b.n]) as usize + a.m);
 
     for j in 0..b.n {
         c.p[j] = nz as i64; // column j of C starts here
@@ -114,10 +114,10 @@ fn scatter(
     let mut i;
     let mut nzo = nz;
     for p in a.p[j] as usize..a.p[j + 1] as usize {
-        i = a.i[p]; //A(i,j) is nonzero
+        i = a.i[p]; // A(i,j) is nonzero
         if w[i] < mark {
-            w[i] = mark; //i is new entry in column j
-            c.i[nzo] = i; //add i to pattern of C(:,j)
+            w[i] = mark; // i is new entry in column j
+            c.i[nzo] = i; // add i to pattern of C(:,j)
             nzo += 1;
             x[i] = beta * a.x[p as usize]; // x(i) = beta*A(i,j)
         } else {
@@ -586,8 +586,8 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     for p in 0..s.lnz {
         n_mat.l.i[p] = n_mat.pinv.as_ref().unwrap()[n_mat.l.i[p]] as usize;
     }
-    n_mat.l.trim();
-    n_mat.u.trim();
+    //n_mat.l.trim();
+    //n_mat.u.trim();
 
     return n_mat;
 }
@@ -683,12 +683,12 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     let mut at = transpose(&a); // compute A'
     let m = a.m;
     let n = a.n;
-    dense = std::cmp::max(16, 10 * f32::sqrt(n as f32) as i64); // find dense threshold
+    dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as i64); // find dense threshold
     dense = std::cmp::min((n - 2) as i64, dense);
     if order == 0 && n == m {
         c = add(&a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {
-        p2 = 0;
+        p2 = 0; // drop dense columns from AT
         for j in 0..m {
             p = at.p[j]; // column j of AT starts here
             at.p[j] = p2; // new column j starts here

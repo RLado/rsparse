@@ -36,7 +36,8 @@ fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
 }
 
 /// C = A'
-/// The algorithm for transposing a sparse matrix (C — A^T) it can be viewed not
+/// 
+/// The algorithm for transposing a sparse matrix (C = A^T) it can be viewed not
 /// just as a linear algebraic function but as a method for converting a
 /// compressed-column sparse matrix into a compressed-row sparse matrix as well.
 /// The algorithm computes the row counts of A, computes the cumulative sum to
@@ -311,6 +312,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// Solves L'*x=b. Where x and b are dense.
+/// 
 /// On input, X contains the right hand side, and on output, the solution.
 ///
 pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
@@ -323,6 +325,7 @@ pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// Solves an upper triangular system. Solves U*x=b.
+/// 
 /// Solve Ux=b where x and b are dense. x=b on input, solution on output.
 ///
 pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
@@ -334,7 +337,9 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
     }
 }
 
-/// Solve U'x=b where x and b are dense. x=b on input, solution on output.
+/// Solve U'x=b where x and b are dense. 
+/// 
+/// x=b on input, solution on output.
 ///
 pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
     for j in 0..u.n {
@@ -615,7 +620,7 @@ pub fn lusol(a: &mut Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     ipvec(a.n, &s.q, &x, b); // b = Q*x
 }
 
-/// symbolic analysis for QR or LU
+/// Symbolic analysis for QR or LU
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,

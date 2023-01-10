@@ -2,10 +2,18 @@
 name = "rsparse"
 version = "0.1.0"
 authors = ["Ricard Lado"]
-edition = "2021"
+
 description = "Provides a library for solving sparse linear systems using direct methods. This crate uses the algorithms from the book 'Direct Methods For Sparse Linear Systems by Dr. Timothy A. Davis.'"
-readme = "README.md"
-repository = "https://github.com/rlado/rsparse"
+categories = ["mathematics", "linear-algebra", "sparse-matrices"]
+keywords = ["math", "linear", "algebra", "sparse", "matrix"]
 license = "MIT"
+repository = "https://github.com/rlado/rsparse"
+readme = "README.md"
+edition = "2021"
+exclude = [".github/",]
+
+[lib]
+name = "rsparse"
+path = "src/lib.rs"
 
 [dependencies]

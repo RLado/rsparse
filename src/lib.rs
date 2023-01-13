@@ -49,7 +49,7 @@ fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
 ///
 pub fn transpose(a: &Sprs) -> Sprs {
     let mut q;
-    let mut w = vec![0; a.n];
+    let mut w = vec![0; a.m];
     let mut c = Sprs::zeros(a.n, a.m, a.p[a.n] as usize);
 
     for p in 0..a.p[a.n] as usize {

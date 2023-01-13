@@ -264,6 +264,26 @@ fn transpose_3() {
 }
 
 #[test]
+fn transpose_4() {
+    let a = vec![
+        vec![92.],
+        vec![98.],
+        vec![4.],
+        vec![85.],
+        vec![86.],
+        vec![17.],
+        vec![23.],
+        vec![79.],
+        vec![10.],
+        vec![11.],
+    ];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    assert_eq!(rsparse::transpose(&a_sparse).todense(), vec![vec![92.,98.,4.,85.,86.,17.,23.,79.,10.,11.]]);
+}
+
+#[test]
 fn gaxpy_1() {
     let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
     let mut a_sparse = rsparse::data::Sprs::new();

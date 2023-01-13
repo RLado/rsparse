@@ -238,11 +238,11 @@ impl Trpl {
     /// Sum duplicate entries (in the same position)
     ///
     pub fn sum_dupl(&mut self) {
-        for i in 0..self.m {
-            for j in 0..self.n {
+        for i in &self.i {
+            for j in &self.p {
                 let pos;
                 let val;
-                let g = self.get_all(i, j);
+                let g = self.get_all(*i, *j as usize);
 
                 if g.is_none() {
                     continue;

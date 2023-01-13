@@ -1,6 +1,21 @@
 //! Data structures for rsparse
 //!
 
+// --- Utilities ---
+/// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
+///
+fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
+    let mut nz = 0;
+    for i in 0..n {
+        p[i] = nz;
+        nz += c[i];
+        c[i] = p[i];
+    }
+    p[n] = nz;
+    return nz as usize;
+}
+
+// --- Data structures ---
 /// Matrix in compressed sparse column (CSC) format
 ///
 /// Useful example for CSR format
@@ -50,6 +65,19 @@ impl Sprs {
         return s;
     }
 
+    /// Get element from (row, column) position
+    ///
+    pub fn get(&self, row: usize, column: usize) -> Option<f64> {
+        for j in 0..self.p.len() - 1 {
+            for i in self.p[j]..self.p[j + 1] {
+                if (self.i[i as usize], j) == (row, column) {
+                    return Some(self.x[i as usize]);
+                }
+            }
+        }
+        return None;
+    }
+
     /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the
     /// current object
     ///
@@ -79,6 +107,60 @@ impl Sprs {
         self.trim();
     }
 
+    /// Convert from triplet form to a Sprs matrix, overwritting the current
+    /// object.
+    ///
+    /// Does not add duplicate values. The last value assigned to a position is
+    /// considered valid.
+    ///
+    /// # Example:
+    /// ```
+    /// fn main() {
+    ///     let a = rsparse::data::Trpl{
+    ///        // number of rows
+    ///        m: 3,
+    ///        // number of columns
+    ///        n: 4,
+    ///        // column index
+    ///        p: vec![0, 1, 2, 0, 3, 3],
+    ///        // row index
+    ///        i: vec![0, 1, 2, 1, 2, 2],
+    ///        // values
+    ///        x: vec![2., 3., 4., 5., 6., 7.]
+    ///    };
+    ///    let mut b = rsparse::data::Sprs::new();
+    ///    b.from_triplet(&a);
+    ///
+    ///    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
+    /// }
+    /// ```
+    ///
+    /// If you need duplicate values to be summed use `Trpl`'s method `sum_dupl()`
+    /// before running this method.
+    ///
+    pub fn from_triplet(&mut self, t: &Trpl) {
+        self.nzmax = t.x.len();
+        self.m = t.m;
+        self.n = t.n;
+        self.p = vec![0; self.n + 1];
+        self.i = vec![0; t.x.len()];
+        self.x = vec![0.; t.x.len()];
+        // get workspace
+        let mut w = vec![0; self.n];
+
+        for k in 0..t.p.len() {
+            w[t.p[k] as usize] += 1; // column counts
+        }
+        cumsum(&mut self.p, &mut w, self.n); // column pointers
+        let mut p;
+        for k in 0..t.p.len() {
+            p = w[t.p[k] as usize] as usize;
+            self.i[p] = t.i[k]; // A(i,j) is the pth entry in C
+            w[t.p[k] as usize] += 1;
+            self.x[p] = t.x[k];
+        }
+    }
+
     /// Trim 0 elements from the sparse matrix
     ///
     pub fn trim(&mut self) {
@@ -104,10 +186,99 @@ impl Sprs {
     }
 }
 
-/// Symbolic Cholesky, LU, or QR analysis
-/// 
+/// Matrix in triplet format
+///
+/// rsparse exclusively uses the CSC format in its core functions. Nevertheless
+/// it is sometimes easier to represent a matrix in the triplet format. For this
+/// reason rsparse provides this struct that can be converted into a Sprs.
+///
 #[derive(Clone, Debug)]
-pub struct Symb{
+pub struct Trpl {
+    /// number of rows
+    pub m: usize,
+    /// number of columns
+    pub n: usize,
+    /// column indices
+    pub p: Vec<i64>,
+    /// row indicies
+    pub i: Vec<usize>,
+    /// numericals values
+    pub x: Vec<f64>,
+}
+
+impl Trpl {
+    /// Initializes to an empty matrix
+    ///
+    pub fn new() -> Trpl {
+        let s = Trpl {
+            m: 0,
+            n: 0,
+            p: Vec::new(),
+            i: Vec::new(),
+            x: Vec::new(),
+        };
+        return s;
+    }
+
+    /// Sum duplicate entries (in the same position)
+    ///
+    pub fn sum_dupl(&mut self) {
+        for i in 0..self.m {
+            for j in 0..self.n {
+                let pos;
+                let val;
+                let g = self.get_all(i, j);
+
+                if g.is_none() {
+                    continue;
+                }
+
+                (pos, val) = g.unwrap();
+                for i in &pos[..pos.len()] {
+                    self.x[*i] = 0.;
+                }
+                self.x[pos[pos.len() - 1]] = val.iter().sum();
+            }
+        }
+    }
+
+    /// Get element from (row, column) position. If more than one element
+    /// exsists returns the first one found.
+    ///
+    pub fn get(&self, row: usize, column: usize) -> Option<f64> {
+        for i in 0..self.x.len() {
+            if (self.i[i], self.p[i] as usize) == (row, column) {
+                return Some(self.x[i]);
+            }
+        }
+        return None;
+    }
+
+    /// Get all elements from (row, column) position.
+    ///
+    pub fn get_all(&self, row: usize, column: usize) -> Option<(Vec<usize>, Vec<f64>)> {
+        let mut r = Vec::new();
+        let mut pos = Vec::new();
+
+        for i in 0..self.x.len() {
+            if (self.i[i], self.p[i] as usize) == (row, column) {
+                r.push(self.x[i]);
+                pos.push(i);
+            }
+        }
+
+        if r.len() > 0 {
+            return Some((pos, r));
+        } else {
+            return None;
+        }
+    }
+}
+
+/// Symbolic Cholesky, LU, or QR analysis
+///
+#[derive(Clone, Debug)]
+pub struct Symb {
     /// inverse row perm. for QR, fill red. perm for Chol
     pub pinv: Option<Vec<i64>>,
     /// fill-reducing column permutation for LU and QR
@@ -135,16 +306,16 @@ impl Symb {
             cp: Vec::new(),
             m2: 0,
             lnz: 0,
-            unz: 0
+            unz: 0,
         };
         return s;
     }
 }
 
 /// Numeric Cholesky, LU, or QR factorization
-/// 
+///
 #[derive(Clone, Debug)]
-pub struct Nmrc{
+pub struct Nmrc {
     /// L for LU and Cholesky, V for QR
     pub l: Sprs,
     /// U for LU, R for QR, not used for Cholesky
@@ -163,7 +334,7 @@ impl Nmrc {
             l: Sprs::new(),
             u: Sprs::new(),
             pinv: None,
-            b: Vec::new()
+            b: Vec::new(),
         };
         return n;
     }

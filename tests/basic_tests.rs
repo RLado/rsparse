@@ -15,6 +15,107 @@ fn from_vec_1() {
 }
 
 #[test]
+fn from_triplet_1() {
+    let a = rsparse::data::Trpl{ // make simple diagonal matrix
+        m: 3,
+        n: 3,
+        p: vec![0, 1, 2],
+        i: vec![0, 1, 2],
+        x: vec![2., 3., 4.]
+    };
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0.], vec![0., 3., 0.], vec![0., 0., 4.]]);
+}
+
+#[test]
+fn from_triplet_2() {
+    let a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0],
+        i: vec![0, 1, 2, 1],
+        x: vec![2., 3., 4., 5.]
+    };
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 0.]]);
+}
+
+#[test]
+fn from_triplet_3() {
+    let a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0, 3, 3],
+        i: vec![0, 1, 2, 1, 2, 2],
+        x: vec![2., 3., 4., 5., 6., 7.]
+    };
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
+}
+
+#[test]
+fn from_triplet_4() {
+    let mut a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0, 3, 3],
+        i: vec![0, 1, 2, 1, 2, 2],
+        x: vec![2., 3., 4., 5., 6., 7.]
+    };
+    a.sum_dupl();
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 13.]]);
+}
+
+#[test]
+fn from_triplet_5() {
+    let mut a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0, 3, 3],
+        i: vec![0, 1, 2, 1, 2, 2],
+        x: vec![2., 3., 4., 5., 6., 7.]
+    };
+    for _ in 0..10 {
+        a.sum_dupl();
+    }
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 13.]]);
+}
+
+#[test]
+fn get_1() {
+    let a = vec![
+        vec![92., 99., 1., 8., 15., 67., 74., 51., 58., 40.],
+        vec![98., 80., 7., 14., 16., 73., 55., 57., 64., 41.],
+        vec![4., 81., 88., 20., 22., 54., 56., 63., 70., 47.],
+        vec![85., 87., 19., 21., 3., 60., 62., 69., 71., 28.],
+        vec![86., 93., 25., 2., 9., 61., 68., 75., 52., 34.],
+        vec![17., 24., 76., 83., 90., 42., 49., 26., 33., 65.],
+        vec![23., 5., 82., 89., 91., 48., 30., 32., 39., 66.],
+        vec![79., 6., 13., 95., 97., 29., 31., 38., 45., 72.],
+        vec![10., 12., 94., 96., 78., 35., 37., 44., 46., 53.],
+        vec![11., 18., 100., 77., 84., 36., 43., 50., 27., 59.],
+    ];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    assert_eq!(a_sparse.get(2,2).unwrap(), 88.);
+    assert_eq!(a_sparse.get(9,9).unwrap(), 59.);
+    assert_eq!(a_sparse.get(10,10), None);
+}
+
+#[test]
 fn todense_1() {
     let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
     let mut a_sparse = rsparse::data::Sprs::new();

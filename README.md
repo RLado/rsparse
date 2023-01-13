@@ -6,10 +6,12 @@ Provides a library for solving sparse linear systems using direct methods. This 
 
 ## Data structures
 - CSC matrix (`Sprs`)
+- Triplet matrix (`Trpl`)
 
 ## Features
 - Convert from dense `Vec<Vec<f64>>` matrix to CSC sparse matrix `Sprs`
 - Convert from sparse to dense `Vec<Vec<f64>>`
+- Convert from a triplet format matrix `Trpl` to CSC `Sprs`
 - Sparse matrix addition [C=A+B]
 - Sparse matrix multiplication [C=A*B]
 - Transpose sparse matrices
@@ -120,6 +122,7 @@ C
 0	1	11
 108	90	342
 ```
+
 
 ### Solve a linear system
 ```rust

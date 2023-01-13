@@ -94,6 +94,60 @@ fn from_triplet_5() {
 }
 
 #[test]
+fn triplet_append_1() {
+    let mut a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0, 3, 3],
+        i: vec![0, 1, 2, 1, 2, 2],
+        x: vec![2., 3., 4., 5., 6., 7.]
+    };
+    a.append(2, 0, 8.);
+    a.sum_dupl();
+
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![8., 0., 4., 13.]]);
+}
+
+#[test]
+fn triplet_append_2() {
+    let mut a = rsparse::data::Trpl{
+        m: 3,
+        n: 4,
+        p: vec![0, 1, 2, 0, 3, 3],
+        i: vec![0, 1, 2, 1, 2, 2],
+        x: vec![2., 3., 4., 5., 6., 7.]
+    };
+    a.append(3, 0, 8.);
+    a.sum_dupl();
+
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 13.], vec![8., 0., 0., 0.]]);
+}
+
+#[test]
+fn triplet_append_3() {
+    let mut a = rsparse::data::Trpl::new();
+    a.append(0, 0, 2.);
+    a.append(1, 1, 3.);
+    a.append(2, 2, 4.);
+    a.append(1, 0, 5.);
+    a.append(2, 3, 6.);
+    a.append(2, 3, 7.);
+    a.append(3, 0, 8.);
+    a.sum_dupl();
+
+    let mut b = rsparse::data::Sprs::new();
+    b.from_triplet(&a);
+
+    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 13.], vec![8., 0., 0., 0.]]);
+}
+
+#[test]
 fn get_1() {
     let a = vec![
         vec![92., 99., 1., 8., 15., 67., 74., 51., 58., 40.],

@@ -220,6 +220,21 @@ impl Trpl {
         return s;
     }
 
+    /// Append new value to the matrix
+    ///
+    pub fn append(&mut self, row: usize, column: usize, value: f64) {
+        if row + 1 > self.m {
+            self.m = row + 1;
+        }
+        if column + 1 > self.n {
+            self.n = column + 1;
+        }
+
+        self.p.push(column as i64);
+        self.i.push(row);
+        self.x.push(value);
+    }
+
     /// Sum duplicate entries (in the same position)
     ///
     pub fn sum_dupl(&mut self) {

@@ -36,7 +36,7 @@ fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
 }
 
 /// C = A'
-/// 
+///
 /// The algorithm for transposing a sparse matrix (C = A^T) it can be viewed not
 /// just as a linear algebraic function but as a method for converting a
 /// compressed-column sparse matrix into a compressed-row sparse matrix as well.
@@ -281,7 +281,7 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
 /// Computes the 1-norm of a sparse matrix
 ///
 /// 1-norm of a sparse matrix = max (sum (abs (A))), largest column sum
-/// 
+///
 pub fn norm(a: &Sprs) -> f64 {
     let mut norm_r = 0.;
     for j in 0..a.n {
@@ -312,7 +312,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// Solves L'*x=b. Where x and b are dense.
-/// 
+///
 /// On input, X contains the right hand side, and on output, the solution.
 ///
 pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
@@ -325,7 +325,7 @@ pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// Solves an upper triangular system. Solves U*x=b.
-/// 
+///
 /// Solve Ux=b where x and b are dense. x=b on input, solution on output.
 ///
 pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
@@ -337,8 +337,8 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
     }
 }
 
-/// Solve U'x=b where x and b are dense. 
-/// 
+/// Solve U'x=b where x and b are dense.
+///
 /// x=b on input, solution on output.
 ///
 pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
@@ -352,7 +352,7 @@ pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
 
 #[inline]
 fn flip(i: i64) -> i64 {
-    return -i - 2;
+    return -(i) - 2;
 }
 
 #[inline]
@@ -501,6 +501,11 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     let n = a.n;
     let mut col;
     let mut top;
+    let mut ipiv;
+    let mut a_f;
+    let mut i;
+    let mut t;
+    let mut pivot;
     let mut x = vec![0.; n];
     let mut xi = vec![0; 2 * n];
     let mut n_mat = Nmrc {
@@ -509,11 +514,6 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         pinv: Some(vec![0; n]),
         b: Vec::new(),
     };
-    let mut ipiv;
-    let mut a_f;
-    let mut i;
-    let mut t;
-    let mut pivot;
 
     for i in 0..n {
         x[i] = 0.; // clear workspace
@@ -531,6 +531,20 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         // --- Triangular solve ---------------------------------------------
         n_mat.l.p[k] = s.lnz as i64; // L(:,k) starts here
         n_mat.u.p[k] = s.unz as i64; // L(:,k) starts here
+
+        // Resize L and U
+        if s.lnz + n > n_mat.l.nzmax {
+            let nsz = 2 * n_mat.l.nzmax + n;
+            n_mat.l.nzmax = nsz;
+            n_mat.l.i.resize(nsz, 0);
+            n_mat.l.x.resize(nsz, 0.);
+        }
+        if s.unz + n > n_mat.u.nzmax {
+            let nsz = 2 * n_mat.u.nzmax + n;
+            n_mat.u.nzmax = nsz;
+            n_mat.u.i.resize(nsz, 0);
+            n_mat.u.x.resize(nsz, 0.);
+        }
 
         if s.q.is_some() {
             col = s.q.as_ref().unwrap()[k] as usize;
@@ -593,8 +607,8 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     for p in 0..s.lnz {
         n_mat.l.i[p] = n_mat.pinv.as_ref().unwrap()[n_mat.l.i[p]] as usize;
     }
-    //n_mat.l.trim();
-    //n_mat.u.trim();
+    n_mat.l.trim();
+    n_mat.u.trim();
 
     return n_mat;
 }
@@ -742,6 +756,11 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
 
     fkeep(&mut c, &diag); // drop diagonal entries
     let mut cnz = c.p[n];
+    // change the max # of entries of C
+    let nsz = cnz as usize + cnz as usize / 5 + 2 * n;
+    c.nzmax = nsz;
+    c.i.resize(nsz, 0);
+    c.x.resize(nsz, 0.);
 
     // --- Initialize quotient graph ----------------------------------------
     for k in 0..n {
@@ -792,9 +811,12 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     while nel < n {
         // while (selecting pivots) do
         // --- Select node of minimum approximate degree --------------------
-        let mut k = -1;
-        while mindeg < n && k == -1 {
+        let mut k;
+        loop {
             k = ww[head + mindeg];
+            if !(mindeg < n && k == -1) {
+                break;
+            }
             mindeg += 1;
         }
 
@@ -849,7 +871,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
             pk1 = cnz;
         }
         pk2 = pk1;
-        for k1 in 1..=elenk as usize + 1 {
+        for k1 in 1..=(elenk + 1) as usize {
             if k1 > elenk as usize {
                 e = k; // search the nodes in k
                 pj = p; // list of nodes starts at Ci[pj]
@@ -922,9 +944,9 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         }
 
         // --- Degree update ------------------------------------------------
-        for pk in pk1 as usize..pk2 as usize {
+        for pk in pk1..pk2 {
             // scan2: degree update
-            i = c.i[pk] as i64; // consider node i in Lk
+            i = c.i[pk as usize] as i64; // consider node i in Lk
             p1 = c.p[i as usize];
             p2 = p1 + ww[(elen as i64 + i) as usize] - 1;
             pn = p1;
@@ -940,7 +962,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                         d += dext; // sum up the set differences
                         c.i[pn as usize] = e as usize; // keep e in Ei
                         pn += 1;
-                        h += e; // compute the hash of node i
+                        h += e as usize; // compute the hash of node i
                     } else {
                         c.p[e as usize] = flip(k); // aggressive absorb. e->k
                         ww[(w as i64 + e) as usize] = 0; // e is a dead element
@@ -960,7 +982,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 d += nvj; // degree(i) += |j|
                 c.i[pn as usize] = j as usize; // place j in node list of i
                 pn += 1;
-                h += j; // compute hash for node i
+                h += j as usize; // compute hash for node i
             }
             if d == 0 {
                 // check for mass elimination
@@ -978,10 +1000,10 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
                 c.i[p3 as usize] = c.i[p1 as usize]; // move 1st el. to end of Ei
                 c.i[p1 as usize] = k as usize; // add k as 1st element in of Ei
                 ww[(len as i64 + i) as usize] = pn - p1 + 1; // new len of adj. list of node i
-                h %= n as i64; // finalize hash of i
-                ww[(next as i64 + i) as usize] = ww[(hhead as i64 + h) as usize]; // place i in hash bucket
-                ww[(hhead as i64 + h) as usize] = i;
-                p_v[(last as i64 + i) as usize] = h; // save hash of i in last[i]
+                h %= n; // finalize hash of i
+                ww[(next as i64 + i) as usize] = ww[hhead + h]; // place i in hash bucket
+                ww[(hhead + h)] = i;
+                p_v[(last as i64 + i) as usize] = h as i64; // save hash of i in last[i]
             }
         } // scan2 is done
         ww[(degree as i64 + k) as usize] = dk; // finalize |Lk|
@@ -989,14 +1011,14 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
         mark_v = wclear(mark_v + lemax, lemax, &mut ww, w, n); // clear w
 
         // --- Supernode detection ------------------------------------------
-        for pk in pk1 as usize..pk2 as usize {
-            i = c.i[pk] as i64;
+        for pk in pk1..pk2 {
+            i = c.i[pk as usize] as i64;
             if ww[(nv as i64 + i) as usize] >= 0 {
                 continue; // skip if i is dead
             }
-            h = p_v[(last as i64 + i) as usize]; // scan hash bucket of node i
-            i = ww[(hhead as i64 + h) as usize];
-            ww[(hhead as i64 + h) as usize] = -1; // hash bucket will be empty
+            h = p_v[(last as i64 + i) as usize] as usize; // scan hash bucket of node i
+            i = ww[hhead + h];
+            ww[hhead + h] = -1; // hash bucket will be empty
 
             while i != -1 && ww[(next as i64 + i) as usize] != -1 {
                 ln = ww[(len as i64 + i) as usize];

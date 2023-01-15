@@ -168,6 +168,12 @@ impl Sprs {
             if self.x[i] == 0. {
                 self.x.remove(i);
                 self.i.remove(i);
+                // fix the column pointers
+                for j in 0..self.p.len(){
+                    if (i as i64) < self.p[j]{
+                        self.p[j] -= 1;
+                    }
+                }
             }
         }
         self.nzmax = self.x.len();

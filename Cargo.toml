@@ -1,6 +1,6 @@
 [package]
 name = "rsparse"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Ricard Lado"]
 
 description = "Provides a library for solving sparse linear systems using direct methods. This crate uses the algorithms from the book 'Direct Methods For Sparse Linear Systems by Dr. Timothy A. Davis.'"

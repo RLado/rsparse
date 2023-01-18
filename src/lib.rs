@@ -8,6 +8,8 @@
 //! Copyright (c) 2023 Ricard Lado
 
 pub mod data;
+use std::vec;
+
 use data::{Nmrc, Sprs, Symb};
 
 /// gaxpy: Generalized A times x plus y
@@ -123,6 +125,30 @@ fn scatter(
             x[i] = beta * a.x[p as usize]; // x(i) = beta*A(i,j)
         } else {
             x[i] += beta * a.x[p as usize]; // i exists in C(:,j) already
+        }
+    }
+
+    return nzo;
+}
+
+/// x = x + beta * A(:,j), where x is a dense vector and A(:,j) is sparse
+///
+fn scatter_no_x(
+    a: &Sprs,
+    j: usize,
+    w: &mut Vec<i64>,
+    mark: usize,
+    c: &mut Sprs,
+    nz: usize,
+) -> usize {
+    let mut i;
+    let mut nzo = nz;
+    for p in a.p[j] as usize..a.p[j + 1] as usize {
+        i = a.i[p]; // A(i,j) is nonzero
+        if w[i] < mark as i64 {
+            w[i] = mark as i64; // i is new entry in column j
+            c.i[nzo] = i; // add i to pattern of C(:,j)
+            nzo += 1;
         }
     }
 
@@ -613,6 +639,8 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     return n_mat;
 }
 
+/// A\b solver using LU factorization.
+///
 /// x=A\b where A is unsymmetric; b (dense) overwritten with solution
 ///
 /// Input, i8 ORDER:
@@ -1535,4 +1563,365 @@ fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Optio
         }
     }
     return Some(pinv);
+}
+
+/// Ordering and symbolic analysis for a Cholesky factorization
+///
+/// Parameters:
+///
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
+///
+pub fn schol(a: &Sprs, order: i8) -> Symb {
+    let n = a.n;
+    let mut s = Symb::new(); // allocate symbolic analysis
+    let p = amd(&a, order); // P = amd(A+A'), or natural
+    s.pinv = pinvert(&p, n); // find inverse permutation
+    drop(p);
+    let c_mat = symperm(&a, &s.pinv); // C = spones(triu(A(P,P)))
+    s.parent = etree(&c_mat, false); // find e tree of C
+    let post = post(n, &s.parent); // postorder the etree
+    let mut c = counts(&c_mat, &s.parent, &post, false); // find column counts of chol(C)
+    drop(post);
+    drop(c_mat);
+    s.cp = vec![0; n + 1]; // find column pointers for L
+    s.unz = cumsum(&mut s.cp, &mut c, n);
+    s.lnz = s.unz;
+    drop(c);
+
+    return s;
+}
+
+/// L = chol (A, [Pinv parent cp]), Pinv is optional
+///
+pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
+    let mut top;
+    let mut d;
+    let mut lki;
+    let mut i;
+    let n = a.n;
+
+    let mut n_mat = Nmrc::new();
+    let mut w = vec![0; 3 * n];
+    let ws = n; // pointer of w
+    let wc = 2 * n; // pointer of w
+    let mut x = vec![0.; n];
+
+    let c_mat;
+    if s.pinv.is_some() {
+        c_mat = symperm(&a, &s.pinv);
+    } else {
+        c_mat = a.clone();
+    }
+    if s.pinv.is_none() {
+        panic!("Could not find permutation for Cholesky");
+    }
+    n_mat.l = Sprs::zeros(n, n, s.cp[n] as usize);
+    for k in 0..n {
+        // --- Nonzero pattern of L(k,:) ------------------------------------
+        n_mat.l.p[k] = s.cp[k]; // column k of L starts here
+        w[wc + k] = s.cp[k] as usize;
+        x[k] = 0.; // x (0:k) is now zero
+        w[k] = k; // mark node k as visited
+        top = ereach(&c_mat, k, &s.parent, ws, &mut w, &mut x, n); // find row k of L
+        d = x[k]; // d = C(k,k)
+        x[k] = 0.; // clear workspace for k+1st iteration
+
+        // --- Triangular solve ---------------------------------------------
+        for _ in top..n {
+            // solve L(0:k-1,0:k-1) * x = C(:,k)
+            i = w[ws + top]; // s [top..n-1] is pattern of L(k,:)
+            lki = x[i] / n_mat.l.x[n_mat.l.p[i] as usize]; // L(k,i) = x (i) / L(i,i)
+            x[i] = 0.; // clear workspace for k+1st iteration
+            for p in (n_mat.l.p[i] + 1) as usize..w[wc + i] {
+                x[n_mat.l.i[p]] -= n_mat.l.x[p] * lki;
+            }
+            d -= lki * lki; // d = d - L(k,i)*L(k,i)
+            let p = w[wc + i];
+            w[wc + i] += 1;
+            n_mat.l.i[p] = k; // store L(k,i) in column i
+            n_mat.l.x[p] = lki;
+        }
+        // --- Compute L(k,k) -----------------------------------------------
+        if d <= 0. {
+            // not pos def
+            panic!("Could not complete Cholesky factorization. Please provide a positive definite matrix");
+        }
+        let p = w[wc + k];
+        w[wc + k] += 1;
+        n_mat.l.i[p as usize] = k; // store L(k,k) = sqrt (d) in column k
+        n_mat.l.x[p as usize] = f64::powf(d, 0.5);
+    }
+    n_mat.l.p[n] = s.cp[n]; // finalize L
+
+    return n_mat;
+}
+
+/// compute nonzero pattern of L(k,:)
+///
+fn ereach(
+    a: &Sprs,
+    k: usize,
+    parent: &Vec<i64>,
+    s: usize,
+    w: &mut Vec<usize>,
+    x: &mut Vec<f64>,
+    top: usize,
+) -> usize {
+    let mut top = top;
+    let mut i;
+    let mut len;
+    for p in a.p[k]..a.p[k + 1] {
+        // get pattern of L(k,:)
+        i = a.i[p as usize]; // A(i,k) is nonzero
+        if i as usize > k {
+            continue; // only use upper triangular part of A
+        }
+        x[i] = a.x[p as usize]; // x(i) = A(i,k)
+        len = 0;
+        while w[i] != k {
+            // traverse up etree
+            w[s + len] = i; // L(k,i) is nonzero
+            len += 1;
+            w[i] = k; // mark i as visited
+
+            i = parent[i] as usize;
+        }
+        while len > 0 {
+            // push path onto stack
+            top -= 1;
+            len -= 1;
+            w[s + top] = w[s + len];
+        }
+    }
+    return top; // s [top..n-1] contains pattern of L(k,:)
+}
+
+/// A\b solver using Cholesky factorization.
+///
+/// x=A\b where A is symmetric positive definite; b overwritten with solution
+///
+/// Parameters:
+///
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
+///
+pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
+    let n = a.n;
+    let mut s = schol(&a, order); // ordering and symbolic analysis
+    let n_mat = chol(&a, &mut s); // numeric Cholesky factorization
+    let mut x = vec![0.; n];
+
+    ipvec(n, &s.pinv, b, &mut x); // x = P*b
+    lsolve(&n_mat.l, &mut x); // x = L\x
+    ltsolve(&n_mat.l, &mut x); // x = L'\x
+    pvec(n, &s.pinv, b, &mut x); // b = P'*x
+}
+
+/// apply the ith Householder vector to x
+///
+fn happly(v: &Sprs, i: usize, beta: f64, x: &mut Vec<f64>) {
+    let mut tau = 0.;
+
+    for p in v.p[i]..v.p[i + 1] {
+        // tau = v'*x
+        tau += v.x[p as usize] * x[v.i[p as usize]];
+    }
+    tau *= beta; // tau = beta*(v'*x)
+    for p in v.p[i]..v.p[i + 1] {
+        // x = x - v*tau
+        x[v.i[p as usize]] -= v.x[p as usize] * tau;
+    }
+}
+
+/// create a Householder reflection [v,beta,s]=house(x), overwrite x with v,
+/// where (I-beta*v*v')*x = s*x.  See Algo 5.1.1, Golub & Van Loan, 3rd ed.
+///
+fn house(
+    x: &mut Vec<f64>,
+    xp: Option<usize>,
+    beta: &mut Vec<f64>,
+    betap: Option<usize>,
+    n: usize,
+) -> f64 {
+    let s;
+    let mut sigma = 0.;
+    let xp = xp.unwrap_or(0);
+    let betap = betap.unwrap_or(0);
+
+    for i in 1..n {
+        sigma += x[i + xp] * x[i + xp];
+    }
+    if sigma == 0. {
+        s = f64::abs(x[0 + xp]); // s = |x(0)|
+        if x[0 + xp] <= 0. {
+            beta[betap] = 2.;
+        } else {
+            beta[betap] = 0.;
+        }
+        x[0 + xp] = 1.;
+    } else {
+        s = f64::powf(x[0 + xp] * x[0 + xp] + sigma, 0.5); // s = norm (x)
+        if x[0 + xp] <= 0. {
+            x[0 + xp] = x[0 + xp] - s;
+        } else {
+            x[0 + xp] = -sigma / (x[0 + xp] + s);
+        }
+        beta[betap] = -1. / (s * x[0 + xp]);
+    }
+
+    return s;
+}
+
+/// sparse QR factorization [V,beta,p,R] = qr (A)
+///
+pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
+    let mut p1;
+    let mut top;
+    let mut col;
+    let mut i;
+
+    let m = a.m;
+    let n = a.n;
+    let mut vnz = s.lnz;
+    let mut rnz = s.unz;
+
+    let mut v = Sprs::zeros(s.m2, n, vnz); // equivalent to n_mat.l
+    let mut r = Sprs::zeros(s.m2, n, rnz); // equivalent to n_mat.u
+
+    let leftmost_p = m + n; // pointer of s.pinv
+    let mut w = vec![0; s.m2 + n];
+    let ws = s.m2; // pointer of w // size n
+    let mut x = vec![0.; s.m2];
+    let mut n_mat = Nmrc::new();
+    let mut beta = vec![0.; n]; // equivalent to n_mat.b
+
+    for k in 0..s.m2 {
+        // clear workspace x
+        x[k] = 0.;
+    }
+
+    for i in 0..s.m2 {
+        w[i] = -1; // clear w, to mark nodes
+    }
+    rnz = 0;
+    vnz = 0;
+    for k in 0..n {
+        // compute V and R
+        r.p[k] = rnz as i64; // R(:,k) starts here
+        v.p[k] = vnz as i64; // V(:,k) starts here
+        p1 = vnz;
+        w[k] = k as i64; // add V(k,k) to pattern of V
+        v.i[vnz] = k;
+        vnz += 1;
+        top = n;
+        if s.q.is_some() {
+            col = s.q.as_ref().unwrap()[k];
+        } else {
+            col = k as i64;
+        }
+        for p in a.p[col as usize]..a.p[(col + 1) as usize] {
+            // find R(:,k) pattern
+            i = s.pinv.as_ref().unwrap()[leftmost_p + a.i[p as usize]]; // i = min(find(A(i,Q)))
+            let mut len = 0;
+            while w[i as usize] != k as i64 {
+                // traverse up to k
+                w[ws + len] = i;
+                len += 1;
+                w[i as usize] = k as i64;
+                // increment statement
+                i = s.parent[i as usize];
+            }
+            while len > 0 {
+                top -= 1;
+                len -= 1;
+                w[ws + top] = w[ws + len]; // push path on stack
+            }
+            i = s.pinv.as_ref().unwrap()[a.i[p as usize]]; // i = permuted row of A(:,col)
+            x[i as usize] = a.x[p as usize]; // x (i) = A(.,col)
+            if i > k as i64 && w[i as usize] < k as i64 {
+                // pattern of V(:,k) = x (k+1:m)
+                v.i[vnz] = i as usize; // add i to pattern of V(:,k)
+                vnz += 1;
+                w[i as usize] = k as i64;
+            }
+        }
+        for p in top..n {
+            // for each i in pattern of R(:,k)
+            i = w[ws + p]; // R(i,k) is nonzero
+            happly(&v, i as usize, beta[i as usize], &mut x); // apply (V(i),Beta(i)) to x
+            r.i[rnz] = i as usize; // R(i,k) = x(i)
+            r.x[rnz] = x[i as usize];
+            rnz += 1;
+            x[i as usize] = 0.;
+            if s.parent[i as usize] == k as i64 {
+                let v_const = v.clone();
+                vnz = scatter_no_x(&v_const, i as usize, &mut w, k, &mut v, vnz);
+            }
+        }
+        for p in p1..vnz {
+            // gather V(:,k) = x
+            v.x[p] = x[v.i[p]];
+            x[v.i[p]] = 0.;
+        }
+        r.i[rnz] = k; // R(k,k) = norm (x)
+        r.x[rnz] = house(&mut v.x, Some(p1), &mut beta, Some(k), vnz - p1); // [v,beta]=house(x)
+        rnz += 1;
+    }
+    r.p[n] = rnz as i64; // finalize R
+    v.p[n] = vnz as i64; // finalize V
+
+    n_mat.l = v;
+    n_mat.u = r;
+    n_mat.b = beta;
+    return n_mat;
+}
+
+/// A\b solver using QR factorization.
+///
+/// x=A\b where A can be rectangular; b overwritten with solution
+///
+/// Parameters:
+///
+/// Input, i8 ORDER:
+/// - -1:natural,
+/// - 0:Cholesky,  
+/// - 1:LU,
+/// - 2:QR
+///
+pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
+    let n = a.n;
+    let m = a.m;
+
+    if m >= n {
+        let s = sqr(&a, order, true); // ordering and symbolic analysis
+        let n_mat = qr(&a, &s); // numeric QR factorization
+        let mut x = vec![0.; s.m2];
+
+        ipvec(m, &s.pinv, &b, &mut x); // x(0:m-1) = P*b(0:m-1)
+        for k in 0..n {
+            // apply Householder refl. to x
+            happly(&n_mat.l, k, n_mat.b[k], &mut x);
+        }
+        usolve(&n_mat.u, &mut x); // x = R\x
+        ipvec(n, &s.q, &x, b); // b(0:n-1) = Q*x (permutation)
+    } else {
+        let at = transpose(&a); // Ax=b is underdetermined
+        let s = sqr(&at, order, true); // ordering and symbolic analysis
+        let n_mat = qr(&at, &s); // numeric QR factorization of A'
+        let mut x = vec![0.; s.m2];
+
+        pvec(m, &s.q, &b, &mut x); // x(0:m-1) = Q'*b (permutation)
+        utsolve(&n_mat.u, &mut x); // x = R'\x
+        for k in (0..m).rev() {
+            happly(&n_mat.l, k, n_mat.b[k], &mut x);
+        }
+        pvec(n, &s.pinv, &x, b); // b (0:n-1) = P'*x
+    }
 }

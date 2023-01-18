@@ -23,8 +23,8 @@ Provides a library for solving sparse linear systems using direct methods. This 
 - **usolve**: Solves an upper triangular system. Solves U*x=b. Solve Ux=b where x and b are dense
 - **utsolve**: Solve U’x=b where x and b are dense
 - **lusol**: A\b solved using LU factorization. Where A is `Sprs` and b is a dense vector
-- **cholsol**: A\b solver using Cholesky factorization. *(Not yet available)*
-- **qrsol**: A\b solver using QR factorization. *(Not yet available)*
+- **cholsol**: A\b solver using Cholesky factorization.
+- **qrsol**: A\b solver using QR factorization.
 
 ## Examples
 ### Basic matrix operations

@@ -1,8 +1,11 @@
 # rsparse
 
-Provides a library for solving sparse linear systems using direct methods. This crate uses the algorithms from the book "Direct Methods For Sparse Linear Systems by Dr. Timothy A. Davis."
+A Rust library for solving sparse linear systems using direct methods.
 
-*Note: This library is a work in progress*
+
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/rlado/rsparse/rust.yml) [![Crates.io](https://img.shields.io/crates/d/rsparse)](https://crates.io/crates/rsparse) [![Crates.io](https://img.shields.io/crates/v/rsparse)](https://crates.io/crates/rsparse)
+
+---
 
 ## Data structures
 - CSC matrix (`Sprs`)
@@ -18,13 +21,13 @@ Provides a library for solving sparse linear systems using direct methods. This 
 - Solve sparse linear systems
 
 ### Solvers
-- **lsolve**: Solves a lower triangular system. Solves L*x=b. Where x and b are dense.
-- **ltsolve**: Solves L’*x=b. Where x and b are dense.
-- **usolve**: Solves an upper triangular system. Solves U*x=b. Solve Ux=b where x and b are dense
+- **lsolve**: Solve a lower triangular system. Solves L*x=b where x and b are dense.
+- **ltsolve**: Solve L’*x=b where x and b are dense.
+- **usolve**: Solve an upper triangular system. Solves U*x=b where x and b are dense
 - **utsolve**: Solve U’x=b where x and b are dense
-- **lusol**: A\b solved using LU factorization. Where A is `Sprs` and b is a dense vector
-- **cholsol**: A\b solver using Cholesky factorization. *(Not yet available)*
-- **qrsol**: A\b solver using QR factorization. *(Not yet available)*
+- **cholsol**: A\b solver using Cholesky factorization. Where A is a defined positive `Sprs` matrix and b is a dense vector
+- **lusol**: A\b solver using LU factorization. Where A is a square `Sprs` matrix and b is a dense vector
+- **qrsol**: A\b solver using QR factorization. Where A is a rectangular `Sprs` matrix and b is a dense vector
 
 ## Examples
 ### Basic matrix operations
@@ -170,7 +173,7 @@ fn main(){
     */
 
     // A*x=b -> solve for x -> place x in b
-    rsparse::lusol(&mut a_sparse, &mut b, 1, 1e-6);
+    rsparse::lusol(&a_sparse, &mut b, 1, 1e-6);
     println!("\nX");
     println!("{:?}", &b);
 }
@@ -185,3 +188,7 @@ X
 
 ## Documentation
 Documentation is available at [docs.rs](https://docs.rs/rsparse).
+
+## Sources
+- Davis, T. (2006). Direct Methods for Sparse Linear Systems. Society for Industrial and Applied Mathematics. [https://doi.org/10.1137/1.9780898718881](https://doi.org/10.1137/1.9780898718881)
+- [CSparse](https://people.math.sc.edu/Burkardt/c_src/csparse/csparse.html): A Concise Sparse Matrix Package in C

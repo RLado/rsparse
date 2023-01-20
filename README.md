@@ -1,8 +1,11 @@
 # rsparse
 
-Provides a library for solving sparse linear systems using direct methods. This crate uses the algorithms from the book "Direct Methods For Sparse Linear Systems by Dr. Timothy A. Davis."
+A Rust library for solving sparse linear systems using direct methods.
 
-*Note: This library is a work in progress*
+
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/rlado/rsparse/rust.yml) [![Crates.io](https://img.shields.io/crates/d/rsparse)](https://crates.io/crates/rsparse) [![Crates.io](https://img.shields.io/crates/v/rsparse)](https://crates.io/crates/rsparse)
+
+---
 
 ## Data structures
 - CSC matrix (`Sprs`)
@@ -185,3 +188,7 @@ X
 
 ## Documentation
 Documentation is available at [docs.rs](https://docs.rs/rsparse).
+
+## Sources
+- Davis, T. (2006). Direct Methods for Sparse Linear Systems. Society for Industrial and Applied Mathematics. [https://doi.org/10.1137/1.9780898718881](https://doi.org/10.1137/1.9780898718881)
+- [CSparse](https://people.math.sc.edu/Burkardt/c_src/csparse/csparse.html): A Concise Sparse Matrix Package in C

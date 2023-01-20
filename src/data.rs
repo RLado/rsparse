@@ -67,6 +67,9 @@ impl Sprs {
 
     /// Get element from (row, column) position
     ///
+    /// *- Note: This function may negatively impact performance, and should be
+    /// avoided*
+    /// 
     pub fn get(&self, row: usize, column: usize) -> Option<f64> {
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
@@ -246,6 +249,9 @@ impl Trpl {
 
     /// Sum duplicate entries (in the same position)
     ///
+    /// *- Note: This function may negatively impact performance, and should be
+    /// avoided*
+    /// 
     pub fn sum_dupl(&mut self) {
         for i in &self.i {
             for j in &self.p {
@@ -269,6 +275,9 @@ impl Trpl {
     /// Get element from (row, column) position. If more than one element
     /// exsists returns the first one found.
     ///
+    /// *- Note: This function may negatively impact performance, and should be
+    /// avoided*
+    /// 
     pub fn get(&self, row: usize, column: usize) -> Option<f64> {
         for i in 0..self.x.len() {
             if (self.i[i], self.p[i] as usize) == (row, column) {
@@ -280,6 +289,9 @@ impl Trpl {
 
     /// Get all elements from (row, column) position.
     ///
+    /// *- Note: This function may negatively impact performance, and should be
+    /// avoided*
+    /// 
     pub fn get_all(&self, row: usize, column: usize) -> Option<(Vec<usize>, Vec<f64>)> {
         let mut r = Vec::new();
         let mut pos = Vec::new();

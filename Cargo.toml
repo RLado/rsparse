@@ -3,7 +3,7 @@ name = "rsparse"
 version = "0.1.6"
 authors = ["Ricard Lado"]
 
-description = "Provides a library for solving sparse linear systems using direct methods. This crate uses the algorithms from the book 'Direct Methods For Sparse Linear Systems by Dr. Timothy A. Davis.'"
+description = "A Rust library for solving sparse linear systems using direct methods."
 categories = ["mathematics", "science"]
 keywords = ["math", "linear", "algebra", "sparse", "matrix"]
 license = "MIT"

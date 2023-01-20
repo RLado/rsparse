@@ -169,9 +169,12 @@ impl Sprs {
                 self.x.remove(i);
                 self.i.remove(i);
                 // fix the column pointers
-                for j in 0..self.p.len(){
+                for j in (0..self.p.len()).rev(){
                     if (i as i64) < self.p[j]{
                         self.p[j] -= 1;
+                    }
+                    else{
+                        break;
                     }
                 }
             }

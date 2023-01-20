@@ -79,6 +79,13 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     let mut c = Sprs::zeros(a.m, b.n, 2 * (a.p[a.n] + b.p[b.n]) as usize + a.m);
 
     for j in 0..b.n {
+        if nz + a.m > c.nzmax {
+            // change the max # of entries of C
+            let nsz = 2 * c.nzmax + a.m;
+            c.nzmax = nsz;
+            c.i.resize(nsz, 0);
+            c.x.resize(nsz, 0.);
+        }
         c.p[j] = nz as i64; // column j of C starts here
         for p in b.p[j]..b.p[j + 1] {
             nz = scatter(
@@ -108,7 +115,7 @@ fn scatter(
     a: &Sprs,
     j: usize,
     beta: f64,
-    w: &mut Vec<usize>,
+    w: &mut Vec<i64>,
     x: &mut Vec<f64>,
     mark: usize,
     c: &mut Sprs,
@@ -118,8 +125,8 @@ fn scatter(
     let mut nzo = nz;
     for p in a.p[j] as usize..a.p[j + 1] as usize {
         i = a.i[p]; // A(i,j) is nonzero
-        if w[i] < mark {
-            w[i] = mark; // i is new entry in column j
+        if w[i] < mark as i64 {
+            w[i] = mark as i64; // i is new entry in column j
             c.i[nzo] = i; // add i to pattern of C(:,j)
             nzo += 1;
             x[i] = beta * a.x[p as usize]; // x(i) = beta*A(i,j)
@@ -159,11 +166,15 @@ fn scatter_no_x(
 ///
 pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
     let mut nz = 0;
-    let mut w = vec![0; a.m];
-    let mut x = vec![0.0; a.m];
-    let mut c = Sprs::zeros(a.m, b.n, (a.p[a.n] + b.p[b.n]) as usize);
+    let m = a.m;
+    let n = b.n;
+    let anz = a.p[a.n] as usize;
+    let bnz = b.p[n] as usize;
+    let mut w = vec![0; m];
+    let mut x = vec![0.0; m];
+    let mut c = Sprs::zeros(m, n, anz + bnz);
 
-    for j in 0..b.n {
+    for j in 0..n {
         c.p[j] = nz as i64; // column j of C starts here
         nz = scatter(&a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
         nz = scatter(&b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
@@ -172,9 +183,36 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
             c.x[p] = x[c.i[p]];
         }
     }
-    c.p[b.n] = nz as i64; // finalize the last column of C
+    c.p[n] = nz as i64; // finalize the last column of C
 
     c.trim();
+    return c;
+}
+
+/// C = alpha*A + beta*B without trimming the result
+///
+fn add_no_trim(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
+    let mut nz = 0;
+    let m = a.m;
+    let n = b.n;
+    let anz = a.p[a.n] as usize;
+    let bnz = b.p[n] as usize;
+    let mut w = vec![0; m];
+    let mut x = vec![0.0; m];
+    let mut c = Sprs::zeros(m, n, anz + bnz);
+
+    for j in 0..n {
+        c.p[j] = nz as i64; // column j of C starts here
+        nz = scatter(&a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
+        nz = scatter(&b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
+
+        for p in c.p[j] as usize..nz {
+            c.x[p] = x[c.i[p]];
+        }
+    }
+    c.p[n] = nz as i64; // finalize the last column of C
+
+    //c.trim();
     return c;
 }
 
@@ -251,14 +289,15 @@ fn permute(a: &Sprs, pinv: &Option<Vec<i64>>, q: &Option<Vec<i64>>) -> Sprs {
 /// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
 ///
 fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
+    let n = a.n;
     let mut i;
     let mut i2;
     let mut j2;
     let mut q;
-    let mut c = Sprs::zeros(a.m, a.n, a.p[a.n] as usize);
-    let mut w = vec![0; a.n];
+    let mut c = Sprs::zeros(n, n, a.p[n] as usize);
+    let mut w = vec![0; n];
 
-    for j in 0..a.n {
+    for j in 0..n {
         //count entries in each column of C
         if pinv.is_some() {
             j2 = pinv.as_ref().unwrap()[j] as usize; // column j of A is column j2 of C
@@ -266,7 +305,7 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
             j2 = j;
         }
 
-        for p in a.p[j] as usize..a.p[j + 1] as usize {
+        for p in a.p[j]..a.p[j + 1] {
             i = a.i[p as usize];
             if i > j {
                 continue; // skip lower triangular part of A
@@ -279,15 +318,15 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
             w[std::cmp::max(i2, j2)] += 1; // column count of C
         }
     }
-    cumsum(&mut c.p, &mut w, a.n); // compute column pointers of C
-    for j in 0..a.n {
+    cumsum(&mut c.p, &mut w, n); // compute column pointers of C
+    for j in 0..n {
         if pinv.is_some() {
             j2 = pinv.as_ref().unwrap()[j] as usize; // column j of A is column j2 of C
         } else {
             j2 = j;
         }
-        for p in a.p[j] as usize..a.p[j + 1] as usize {
-            i = a.i[p];
+        for p in a.p[j]..a.p[j + 1] {
+            i = a.i[p as usize];
             if i > j {
                 continue; // skip lower triangular part of A
             }
@@ -299,6 +338,7 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<i64>>) -> Sprs {
             q = w[std::cmp::max(i2, j2)] as usize;
             w[std::cmp::max(i2, j2)] += 1;
             c.i[q] = std::cmp::min(i2, j2);
+            c.x[q] = a.x[p as usize];
         }
     }
     return c;
@@ -746,7 +786,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as i64); // find dense threshold
     dense = std::cmp::min((n - 2) as i64, dense);
     if order == 0 && n == m {
-        c = add(&a, &at, 0., 0.); // C = A+A'
+        c = add_no_trim(&a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {
         p2 = 0; // drop dense columns from AT
         for j in 0..m {
@@ -1505,18 +1545,18 @@ fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Optio
         w[nque + k] = 0;
     }
     for i in 0..m {
-        w[leftmost + i] = -1;
+        pinv[leftmost + i] = -1;
     }
     for k in (0..n).rev() {
         for p in a.p[k]..a.p[k + 1] {
-            w[leftmost + a.i[p as usize]] = k as i64; // leftmost[i] = min(find(A(i,:)))
+            pinv[leftmost + a.i[p as usize]] = k as i64; // leftmost[i] = min(find(A(i,:)))
         }
     }
     let mut k;
     for i in (0..m).rev() {
         // scan rows in reverse order
         pinv[i] = -1; // row i is not yet ordered
-        k = w[leftmost + i];
+        k = pinv[leftmost + i];
         if k == -1 {
             continue; // row i is empty
         }
@@ -1605,45 +1645,45 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     let n = a.n;
 
     let mut n_mat = Nmrc::new();
-    let mut w = vec![0; 3 * n];
+    let mut w = vec![0; 3 * n]; // This variable here seems to be key
     let ws = n; // pointer of w
     let wc = 2 * n; // pointer of w
     let mut x = vec![0.; n];
 
-    let c_mat;
+    let c;
     if s.pinv.is_some() {
-        c_mat = symperm(&a, &s.pinv);
+        c = symperm(&a, &s.pinv);
     } else {
-        c_mat = a.clone();
-    }
-    if s.pinv.is_none() {
-        panic!("Could not find permutation for Cholesky");
+        c = a.clone();
     }
     n_mat.l = Sprs::zeros(n, n, s.cp[n] as usize);
     for k in 0..n {
         // --- Nonzero pattern of L(k,:) ------------------------------------
-        n_mat.l.p[k] = s.cp[k]; // column k of L starts here
-        w[wc + k] = s.cp[k] as usize;
+        w[wc + k] = s.cp[k]; // column k of L starts here
+        n_mat.l.p[k] = w[wc + k];
         x[k] = 0.; // x (0:k) is now zero
-        w[k] = k; // mark node k as visited
-        top = ereach(&c_mat, k, &s.parent, ws, &mut w, &mut x, n); // find row k of L
+        w[k] = k as i64; // mark node k as visited
+        top = ereach(&c, k, &s.parent, ws, &mut w, &mut x, n); // find row k of L
         d = x[k]; // d = C(k,k)
         x[k] = 0.; // clear workspace for k+1st iteration
 
         // --- Triangular solve ---------------------------------------------
-        for _ in top..n {
+        while top < n {
             // solve L(0:k-1,0:k-1) * x = C(:,k)
-            i = w[ws + top]; // s [top..n-1] is pattern of L(k,:)
+            i = w[ws + top] as usize; // s [top..n-1] is pattern of L(k,:)
             lki = x[i] / n_mat.l.x[n_mat.l.p[i] as usize]; // L(k,i) = x (i) / L(i,i)
             x[i] = 0.; // clear workspace for k+1st iteration
-            for p in (n_mat.l.p[i] + 1) as usize..w[wc + i] {
-                x[n_mat.l.i[p]] -= n_mat.l.x[p] * lki;
+            for p in (n_mat.l.p[i] + 1)..w[wc + i] as i64 {
+                x[n_mat.l.i[p as usize]] -= n_mat.l.x[p as usize] * lki;
             }
             d -= lki * lki; // d = d - L(k,i)*L(k,i)
-            let p = w[wc + i];
+            let p = w[wc + i] as usize;
             w[wc + i] += 1;
             n_mat.l.i[p] = k; // store L(k,i) in column i
             n_mat.l.x[p] = lki;
+
+            // increment statement
+            top += 1;
         }
         // --- Compute L(k,k) -----------------------------------------------
         if d <= 0. {
@@ -1667,7 +1707,7 @@ fn ereach(
     k: usize,
     parent: &Vec<i64>,
     s: usize,
-    w: &mut Vec<usize>,
+    w: &mut Vec<i64>,
     x: &mut Vec<f64>,
     top: usize,
 ) -> usize {
@@ -1676,19 +1716,20 @@ fn ereach(
     let mut len;
     for p in a.p[k]..a.p[k + 1] {
         // get pattern of L(k,:)
-        i = a.i[p as usize]; // A(i,k) is nonzero
-        if i as usize > k {
+        i = a.i[p as usize] as i64; // A(i,k) is nonzero
+        if i > k as i64 {
             continue; // only use upper triangular part of A
         }
-        x[i] = a.x[p as usize]; // x(i) = A(i,k)
+        x[i as usize] = a.x[p as usize]; // x(i) = A(i,k)
         len = 0;
-        while w[i] != k {
+        while w[i as usize] != k as i64 {
             // traverse up etree
             w[s + len] = i; // L(k,i) is nonzero
             len += 1;
-            w[i] = k; // mark i as visited
+            w[i as usize] = k as i64; // mark i as visited
 
-            i = parent[i] as usize;
+            // increment statement
+            i = parent[i as usize];
         }
         while len > 0 {
             // push path onto stack
@@ -1721,7 +1762,7 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     ipvec(n, &s.pinv, b, &mut x); // x = P*b
     lsolve(&n_mat.l, &mut x); // x = L\x
     ltsolve(&n_mat.l, &mut x); // x = L'\x
-    pvec(n, &s.pinv, b, &mut x); // b = P'*x
+    pvec(n, &s.pinv, &x, b); // b = P'*x
 }
 
 /// apply the ith Householder vector to x

@@ -18,13 +18,13 @@ Provides a library for solving sparse linear systems using direct methods. This 
 - Solve sparse linear systems
 
 ### Solvers
-- **lsolve**: Solves a lower triangular system. Solves L*x=b. Where x and b are dense.
-- **ltsolve**: Solves L’*x=b. Where x and b are dense.
-- **usolve**: Solves an upper triangular system. Solves U*x=b. Solve Ux=b where x and b are dense
+- **lsolve**: Solve a lower triangular system. Solves L*x=b where x and b are dense.
+- **ltsolve**: Solve L’*x=b where x and b are dense.
+- **usolve**: Solve an upper triangular system. Solves U*x=b where x and b are dense
 - **utsolve**: Solve U’x=b where x and b are dense
-- **lusol**: A\b solved using LU factorization. Where A is `Sprs` and b is a dense vector
-- **cholsol**: A\b solver using Cholesky factorization.
-- **qrsol**: A\b solver using QR factorization.
+- **cholsol**: A\b solver using Cholesky factorization. Where A is a defined positive `Sprs` matrix and b is a dense vector
+- **qrsol**: A\b solver using QR factorization. Where A is a rectangular `Sprs` matrix and b is a dense vector
+- **lusol**: A\b solver using LU factorization. Where A is a square `Sprs` matrix and b is a dense vector
 
 ## Examples
 ### Basic matrix operations
@@ -170,7 +170,7 @@ fn main(){
     */
 
     // A*x=b -> solve for x -> place x in b
-    rsparse::lusol(&mut a_sparse, &mut b, 1, 1e-6);
+    rsparse::lusol(&a_sparse, &mut b, 1, 1e-6);
     println!("\nX");
     println!("{:?}", &b);
 }

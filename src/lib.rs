@@ -528,7 +528,7 @@ fn dfs(
 ///
 fn splsolve(
     l: &mut Sprs,
-    b: &mut Sprs,
+    b: &Sprs,
     k: usize,
     xi: &mut Vec<i64>,
     x: &mut Vec<f64>,
@@ -536,7 +536,7 @@ fn splsolve(
 ) -> usize {
     let mut j;
     let mut jnew;
-    let top = reach(l, b, k, xi, pinv); // xi[top..n-1]=Reach(B(:,k))
+    let top = reach(l, &b, k, xi, pinv); // xi[top..n-1]=Reach(B(:,k))
 
     for p in top..l.n {
         x[xi[p] as usize] = 0.; // clear x
@@ -563,7 +563,7 @@ fn splsolve(
 
 /// L,U,Pinv = lu(A, [Q lnz unz]). lnz and unz can be guess
 ///
-pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
+pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     let n = a.n;
     let mut col;
     let mut top;
@@ -689,7 +689,7 @@ pub fn lu(a: &mut Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 /// - 1:LU,
 /// - 2:QR
 ///
-pub fn lusol(a: &mut Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
+pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     let mut x = vec![0.; a.n];
     let mut s;
     let n;
@@ -1595,7 +1595,7 @@ fn vcount(a: &Sprs, parent: &Vec<i64>, m2: &mut usize, vnz: &mut usize) -> Optio
             w[(nque as i64 + pa) as usize] += w[nque + k];
         }
     }
-    let mut k = n - 1;
+    let mut k = n;
     for i in 0..m {
         if pinv[i as usize] < 0 {
             pinv[i as usize] = k as i64;
@@ -1964,5 +1964,36 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
             happly(&n_mat.l, k, n_mat.b[k], &mut x);
         }
         pvec(n, &s.pinv, &x, b); // b (0:n-1) = P'*x
+    }
+}
+
+/// Print a sparse matrix
+pub fn sprs_print(a: &Sprs, brief: bool) {
+    let m = a.m;
+    let n = a.n;
+    let nzmax = a.nzmax;
+
+    println!(
+        "{}-by-{}, nzmax: {} nnz: {}, 1-norm: {}",
+        m,
+        n,
+        nzmax,
+        a.p[n],
+        norm(&a)
+    );
+    for j in 0..n {
+        println!(
+            "      col {} : locations {} to {}",
+            j,
+            a.p[j],
+            a.p[j + 1] - 1
+        );
+        for p in a.p[j]..a.p[j + 1] {
+            println!("            {} : {}", a.i[p as usize], a.x[p as usize]);
+            if brief && p > 20 {
+                println!("  ...");
+                return;
+            }
+        }
     }
 }

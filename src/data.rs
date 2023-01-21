@@ -189,6 +189,14 @@ impl Sprs {
         self.nzmax = self.x.len();
     }
 
+    /// Trim elements unaccounted by self.p
+    /// 
+    pub fn quick_trim(&mut self){
+        self.nzmax = self.p[self.n] as usize;
+        self.i.resize(self.nzmax, 0);
+        self.x.resize(self.nzmax, 0.);
+    }
+
     /// Converts sparse matrix to dense matrix
     ///
     pub fn todense(&self) -> Vec<Vec<f64>> {

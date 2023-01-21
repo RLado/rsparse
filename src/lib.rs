@@ -258,7 +258,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
     }
     c.p[n] = nz as i64; // finalize the last column of C
 
-    c.trim();
+    c.quick_trim();
     return c;
 }
 
@@ -613,8 +613,8 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     for p in 0..s.lnz {
         n_mat.l.i[p] = n_mat.pinv.as_ref().unwrap()[n_mat.l.i[p]] as usize;
     }
-    n_mat.l.trim();
-    n_mat.u.trim();
+    n_mat.l.quick_trim();
+    n_mat.u.quick_trim();
 
     return n_mat;
 }
@@ -734,7 +734,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
         }
     }
     c.p[b.n] = nz as i64;
-    c.trim();
+    c.quick_trim();
 
     return c;
 }
@@ -798,11 +798,6 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     let mut n_mat = Nmrc::new();
     let mut beta = vec![0.; n]; // equivalent to n_mat.b
 
-    for k in 0..s.m2 {
-        // clear workspace x
-        x[k] = 0.;
-    }
-
     for i in 0..s.m2 {
         w[i] = -1; // clear w, to mark nodes
     }
@@ -857,8 +852,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
             rnz += 1;
             x[i as usize] = 0.;
             if s.parent[i as usize] == k as i64 {
-                let v_const = v.clone();
-                vnz = scatter_no_x(&v_const, i as usize, &mut w, k, &mut v, vnz);
+                vnz = scatter_no_x(i as usize, &mut w, k, &mut v, vnz);
             }
         }
         for p in p1..vnz {
@@ -1204,33 +1198,6 @@ pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
 
 // --- Private functions -------------------------------------------------------
 
-/// C = alpha*A + beta*B without trimming the result
-///
-fn add_no_trim(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
-    let mut nz = 0;
-    let m = a.m;
-    let n = b.n;
-    let anz = a.p[a.n] as usize;
-    let bnz = b.p[n] as usize;
-    let mut w = vec![0; m];
-    let mut x = vec![0.0; m];
-    let mut c = Sprs::zeros(m, n, anz + bnz);
-
-    for j in 0..n {
-        c.p[j] = nz as i64; // column j of C starts here
-        nz = scatter(&a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
-        nz = scatter(&b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
-
-        for p in c.p[j] as usize..nz {
-            c.x[p] = x[c.i[p]];
-        }
-    }
-    c.p[n] = nz as i64; // finalize the last column of C
-
-    //c.trim();
-    return c;
-}
-
 /// amd(...) carries out the approximate minimum degree algorithm.
 /// p = amd(A+A') if symmetric is true, or amd(A'A) otherwise
 /// Parameters:
@@ -1279,7 +1246,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as i64); // find dense threshold
     dense = std::cmp::min((n - 2) as i64, dense);
     if order == 0 && n == m {
-        c = add_no_trim(&a, &at, 0., 0.); // C = A+A'
+        c = add(&a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {
         p2 = 0; // drop dense columns from AT
         for j in 0..m {
@@ -2255,10 +2222,9 @@ fn scatter(
     return nzo;
 }
 
-/// beta * A(:,j), where A(:,j) is sparse
+/// beta * A(:,j), where A(:,j) is sparse. For QR decomposition
 ///
 fn scatter_no_x(
-    a: &Sprs,
     j: usize,
     w: &mut Vec<i64>,
     mark: usize,
@@ -2267,8 +2233,8 @@ fn scatter_no_x(
 ) -> usize {
     let mut i;
     let mut nzo = nz;
-    for p in a.p[j] as usize..a.p[j + 1] as usize {
-        i = a.i[p]; // A(i,j) is nonzero
+    for p in c.p[j] as usize..c.p[j + 1] as usize {
+        i = c.i[p]; // A(i,j) is nonzero
         if w[i] < mark as i64 {
             w[i] = mark as i64; // i is new entry in column j
             c.i[nzo] = i; // add i to pattern of C(:,j)

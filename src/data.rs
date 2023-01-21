@@ -1,7 +1,9 @@
 //! Data structures for rsparse
 //!
 
-// --- Utilities ---
+
+// --- Utilities ---------------------------------------------------------------
+
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
 ///
 fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
@@ -15,7 +17,9 @@ fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
     return nz as usize;
 }
 
-// --- Data structures ---
+
+// --- Data structures ---------------------------------------------------------
+
 /// Matrix in compressed sparse column (CSC) format
 ///
 /// Useful example for CSR format
@@ -183,6 +187,14 @@ impl Sprs {
             }
         }
         self.nzmax = self.x.len();
+    }
+
+    /// Trim elements unaccounted by self.p
+    /// 
+    pub fn quick_trim(&mut self){
+        self.nzmax = self.p[self.n] as usize;
+        self.i.resize(self.nzmax, 0);
+        self.x.resize(self.nzmax, 0.);
     }
 
     /// Converts sparse matrix to dense matrix

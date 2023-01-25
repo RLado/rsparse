@@ -53,8 +53,8 @@
 //!     let mut a2 = rsparse::data::Sprs::new();
 //!     a2.from_vec(
 //!         &vec![
-//!             vec![0., 0., 2.], 
-//!             vec![1., 0., 0.], 
+//!             vec![0., 0., 2.],
+//!             vec![1., 0., 0.],
 //!             vec![9., 9., 9.]
 //!         ]
 //!     );
@@ -175,7 +175,7 @@
 //! }
 //! ```
 //!
-//! Output: 
+//! Output:
 //!
 //! ```result
 //! X
@@ -211,7 +211,7 @@ use data::{Nmrc, Sprs, Symb};
 ///     ];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     let b = vec![
 ///         vec![8., 8., 6., 6., 2.],
 ///         vec![4., 9., 7., 5., 9.],
@@ -221,7 +221,7 @@ use data::{Nmrc, Sprs, Symb};
 ///     ];
 ///     let mut b_sparse = rsparse::data::Sprs::new();
 ///     b_sparse.from_vec(&b);
-/// 
+///
 ///     let r = vec![
 ///         vec![10., 10., 10., 10., 3.],
 ///         vec![7., 13., 12., 13., 12.],
@@ -231,12 +231,12 @@ use data::{Nmrc, Sprs, Symb};
 ///     ];
 ///     let mut r_sparse = rsparse::data::Sprs::new();
 ///     r_sparse.from_vec(&r);
-/// 
+///
 ///     // Check as dense
 ///     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
 /// }
 /// ```
-/// 
+///
 pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
     let mut nz = 0;
     let m = a.m;
@@ -263,7 +263,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 }
 
 /// L = chol (A, [Pinv parent cp]), Pinv is optional
-/// 
+///
 /// See: `schol(...)`
 ///
 pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
@@ -347,7 +347,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 ///     let c = vec![vec![5.0, 0.0, 0.0, 0.0, 0.0],vec![0.0, 5.0, 0.0, 0.0, 0.017856],vec![0.0, 0.0, 5.0, 0.0, 0.0],vec![0.0, 0.0, 0.0, 5.0, 0.479746],vec![0.0, 0.017856, 0.0, 0.479746, 5.0]];
 ///     let mut c_sparse = rsparse::data::Sprs::new();
 ///     c_sparse.from_vec(&c);
-/// 
+///
 ///     let mut b = vec![
 ///         0.2543,
 ///         0.8143,
@@ -355,13 +355,13 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 ///         0.9293,
 ///         0.3500
 ///     ];
-/// 
+///
 ///     rsparse::cholsol(&mut c_sparse, &mut b, 0);
 ///     println!("\nX");
 ///     println!("{:?}", &b);
 /// }
 /// ```
-/// 
+///
 pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     let n = a.n;
     let mut s = schol(&a, order); // ordering and symbolic analysis
@@ -375,26 +375,26 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 }
 
 /// gaxpy: Generalized A times X Plus Y
-/// 
+///
 /// r = A*x+y
-/// 
+///
 /// # Example
 /// ```
 /// fn main() {
 ///     let a = vec![
-///         vec![0., 0., 2.], 
-///         vec![1., 0., 0.], 
+///         vec![0., 0., 2.],
+///         vec![1., 0., 0.],
 ///         vec![9., 9., 9.]
 ///     ];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     let x = vec![1., 2., 3.];
 ///     let y = vec![3., 2., 1.];
-/// 
+///
 ///     assert_eq!(rsparse::gaxpy(&a_sparse, &x, &y), vec!(9., 3., 55.));
 /// }
-/// ``` 
+/// ```
 pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
     let mut r = y.clone();
     for j in 0..a_mat.n {
@@ -447,7 +447,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
 ///    rsparse::lsolve(&l_sparse, &mut b);
 /// }
 /// ```
-/// 
+///
 pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
     for j in 0..l.n {
         x[j] /= l.x[l.p[j] as usize];
@@ -489,7 +489,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
 ///    rsparse::ltsolve(&l_sparse, &mut b);
 /// }
 /// ```
-/// 
+///
 pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
     for j in (0..l.n).rev() {
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
@@ -500,7 +500,7 @@ pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
 }
 
 /// (L,U,Pinv) = lu(A, (Q lnz unz)). lnz and unz can be guess
-/// 
+///
 /// See: `sqr(...)`
 ///
 pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
@@ -628,7 +628,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 /// - 0:Cholesky,  
 /// - 1:LU,
 /// - 2:QR
-/// 
+///
 /// # Example:
 /// ```
 /// fn main(){
@@ -688,20 +688,20 @@ pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
 ///     let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     let b = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 1., 9.]];
 ///     let mut b_sparse = rsparse::data::Sprs::new();
 ///     b_sparse.from_vec(&b);
-/// 
+///
 ///     let c = rsparse::multiply(&a_sparse, &b_sparse);
-/// 
+///
 ///     assert_eq!(
 ///         c.todense(),
 ///         vec![vec![18., 2., 18.], vec![0., 0., 2.], vec![90., 9., 99.]]
 ///     )
 /// }
 /// ```
-/// 
+///
 pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
     let mut nz = 0;
     let mut w = vec![0; a.m];
@@ -753,14 +753,14 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
 ///         vec![0.056867, 0.612998, 0.933199, 0.834696, 0.831912, 0.077548],
 ///         vec![0.080079, 0.350149, 0.930013, 0.482766, 0.808863, 0.152294],
 ///         vec![0.486605, 0.215417, 0.446327, 0.737579, 0.141593, 0.472575]];
-/// 
+///
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
 ///         
 ///     assert!(f64::abs(rsparse::norm(&a_sparse) - 4.4199) < 1e-3);
 /// }
 /// ```
-/// 
+///
 pub fn norm(a: &Sprs) -> f64 {
     let mut norm_r = 0.;
     for j in 0..a.n {
@@ -776,7 +776,7 @@ pub fn norm(a: &Sprs) -> f64 {
 /// Sparse QR factorization (V,beta,p,R) = qr (A)
 ///
 /// See: `sqr(...)`
-/// 
+///
 pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     let mut p1;
     let mut top;
@@ -922,7 +922,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 ///     println!("{:?}", &b);
 /// }
 /// ```
-/// 
+///
 pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     let n = a.n;
     let m = a.m;
@@ -985,7 +985,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 }
 
 /// Print a sparse matrix
-/// 
+///
 pub fn sprs_print(a: &Sprs, brief: bool) {
     let m = a.m;
     let n = a.n;
@@ -1063,9 +1063,9 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
 /// matrix C is interpreted as a matrix in compressed-row form, then C is equal
 /// to A, just in a different format. If C is viewed as a compressed-column
 /// matrix, then C contains A^T.
-/// 
+///
 /// # Example
-/// ``` 
+/// ```
 /// fn main() {
 ///     let a = vec![
 ///         vec![2.1615, 2.0044, 2.1312, 0.8217, 2.2074],
@@ -1076,7 +1076,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
 ///     ];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     assert_eq!(
 ///         rsparse::transpose(&a_sparse).todense(),
 ///         vec![
@@ -1139,11 +1139,11 @@ pub fn transpose(a: &Sprs) -> Sprs {
 ///        0.744179,
 ///        0.078005
 ///    ];
-/// 
+///
 ///    rsparse::usolve(&u_sparse, &mut b);
 /// }
 /// ```
-/// 
+///
 pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
     for j in (0..u.n).rev() {
         x[j] /= u.x[(u.p[j + 1] - 1) as usize];
@@ -1185,7 +1185,7 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
 ///    rsparse::utsolve(&u_sparse, &mut b);
 /// }
 /// ```
-/// 
+///
 pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
     for j in 0..u.n {
         for p in u.p[j] as usize..(u.p[j + 1] - 1) as usize {
@@ -1240,11 +1240,16 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     let mut jlast;
 
     // --- Construct matrix C -----------------------------------------------
+    if order < 0 {
+        return None;
+    }
+
     let mut at = transpose(&a); // compute A'
     let m = a.m;
     let n = a.n;
     dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as i64); // find dense threshold
     dense = std::cmp::min((n - 2) as i64, dense);
+
     if order == 0 && n == m {
         c = add(&a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {
@@ -2224,13 +2229,7 @@ fn scatter(
 
 /// beta * A(:,j), where A(:,j) is sparse. For QR decomposition
 ///
-fn scatter_no_x(
-    j: usize,
-    w: &mut Vec<i64>,
-    mark: usize,
-    c: &mut Sprs,
-    nz: usize,
-) -> usize {
+fn scatter_no_x(j: usize, w: &mut Vec<i64>, mark: usize, c: &mut Sprs, nz: usize) -> usize {
     let mut i;
     let mut nzo = nz;
     for p in c.p[j] as usize..c.p[j + 1] as usize {

@@ -1,6 +1,9 @@
 //! Data structures for rsparse
 //!
 
+use std::fs::File;
+use std::io::Write;
+use std::io::{BufRead, BufReader};
 
 // --- Utilities ---------------------------------------------------------------
 
@@ -16,7 +19,6 @@ fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
     p[n] = nz;
     return nz as usize;
 }
-
 
 // --- Data structures ---------------------------------------------------------
 
@@ -73,7 +75,7 @@ impl Sprs {
     ///
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
-    /// 
+    ///
     pub fn get(&self, row: usize, column: usize) -> Option<f64> {
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
@@ -176,11 +178,10 @@ impl Sprs {
                 self.x.remove(i);
                 self.i.remove(i);
                 // fix the column pointers
-                for j in (0..self.p.len()).rev(){
-                    if (i as i64) < self.p[j]{
+                for j in (0..self.p.len()).rev() {
+                    if (i as i64) < self.p[j] {
                         self.p[j] -= 1;
-                    }
-                    else{
+                    } else {
                         break;
                     }
                 }
@@ -190,8 +191,8 @@ impl Sprs {
     }
 
     /// Trim elements unaccounted by self.p
-    /// 
-    pub fn quick_trim(&mut self){
+    ///
+    pub fn quick_trim(&mut self) {
         self.nzmax = self.p[self.n] as usize;
         self.i.resize(self.nzmax, 0);
         self.x.resize(self.nzmax, 0.);
@@ -207,6 +208,107 @@ impl Sprs {
             }
         }
         return r;
+    }
+
+    /// Save a sparse matrix
+    ///
+    /// Saves a `Sprs` matrix in plain text.
+    ///
+    pub fn save(&self, path: &str) -> Result<(), std::io::Error> {
+        let mut f = File::create(path)?;
+        writeln!(f, "nzmax: {}", self.nzmax)?;
+        writeln!(f, "m: {}", self.m)?;
+        writeln!(f, "n: {}", self.n)?;
+        writeln!(f, "p: {:?}", self.p)?;
+        writeln!(f, "i: {:?}", self.i)?;
+        writeln!(f, "x: {:?}", self.x)?;
+        return Ok(());
+    }
+
+    /// Load a sparse matrix
+    ///
+    /// Loads a `Sprs` matrix from a plain text file
+    ///
+    pub fn load(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let f = File::open(path)?;
+
+        // Read the file line by line
+        let reader = BufReader::new(f);
+        for line in reader.lines() {
+            let line_read = line?;
+            if line_read.contains("nzmax:") {
+                self.nzmax = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                    .parse::<usize>()?;
+                if self.nzmax == 0 {
+                    // If the saved matrix is empty, just write it as such
+                    self.nzmax = 0;
+                    self.m = 0;
+                    self.n = 0;
+                    self.p = Vec::new();
+                    self.i = Vec::new();
+                    self.x = Vec::new();
+
+                    return Ok(());
+                }
+            } else if line_read.contains("m:") {
+                self.m = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                    .parse::<usize>()?;
+                if self.m == 0 {
+                    // If the saved matrix is empty, just write it as such
+                    self.nzmax = 0;
+                    self.m = 0;
+                    self.n = 0;
+                    self.p = Vec::new();
+                    self.i = Vec::new();
+                    self.x = Vec::new();
+
+                    return Ok(());
+                }
+            } else if line_read.contains("n:") {
+                self.n = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                    .parse::<usize>()?;
+                if self.n == 0 {
+                    // If the saved matrix is empty, just write it as such
+                    self.nzmax = 0;
+                    self.m = 0;
+                    self.n = 0;
+                    self.p = Vec::new();
+                    self.i = Vec::new();
+                    self.x = Vec::new();
+
+                    return Ok(());
+                }
+            } else if line_read.contains("p:") {
+                let p_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                // eliminate brackets
+                let t = p_str.replace("[", "");
+                let p_str = t.replace("]", "");
+                // populate `Vec`
+                for item in p_str.split(",") {
+                    self.p.push(item.replace(" ", "").parse::<i64>()?);
+                }
+            } else if line_read.contains("i:") {
+                let i_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                // eliminate brackets
+                let t = i_str.replace("[", "");
+                let i_str = t.replace("]", "");
+                // populate `Vec`
+                for item in i_str.split(",") {
+                    self.i.push(item.replace(" ", "").parse::<usize>()?);
+                }
+            } else if line_read.contains("x:") {
+                let x_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                // eliminate brackets
+                let t = x_str.replace("[", "");
+                let x_str = t.replace("]", "");
+                // populate `Vec`
+                for item in x_str.split(",") {
+                    self.x.push(item.replace(" ", "").parse::<f64>()?);
+                }
+            }
+        }
+
+        return Ok(());
     }
 }
 
@@ -263,7 +365,7 @@ impl Trpl {
     ///
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
-    /// 
+    ///
     pub fn sum_dupl(&mut self) {
         for i in &self.i {
             for j in &self.p {
@@ -289,7 +391,7 @@ impl Trpl {
     ///
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
-    /// 
+    ///
     pub fn get(&self, row: usize, column: usize) -> Option<f64> {
         for i in 0..self.x.len() {
             if (self.i[i], self.p[i] as usize) == (row, column) {
@@ -303,7 +405,7 @@ impl Trpl {
     ///
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
-    /// 
+    ///
     pub fn get_all(&self, row: usize, column: usize) -> Option<(Vec<usize>, Vec<f64>)> {
         let mut r = Vec::new();
         let mut pos = Vec::new();

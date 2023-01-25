@@ -1240,11 +1240,16 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<i64>> {
     let mut jlast;
 
     // --- Construct matrix C -----------------------------------------------
+    if order < 0 {
+        return None;
+    }
+
     let mut at = transpose(&a); // compute A'
     let m = a.m;
     let n = a.n;
     dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as i64); // find dense threshold
     dense = std::cmp::min((n - 2) as i64, dense);
+    
     if order == 0 && n == m {
         c = add(&a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {

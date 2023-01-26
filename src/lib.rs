@@ -1,4 +1,4 @@
-//! rsparse
+//! <span style="color:#c45508">r</span>sparse
 //!
 //! A Rust library for solving sparse linear systems using direct methods.
 //!

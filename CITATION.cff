@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: rsparse
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - family-names: Lado-Roigé
+    given-names: Ricard
+    orcid: 'https://orcid.org/0000-0002-6421-7351'
+repository-code: 'https://github.com/RLado/rsparse'
+url: 'https://crates.io/crates/rsparse'
+abstract: >-
+  A Rust library for solving sparse linear systems using
+  direct methods.
+keywords:
+  - sparse-matrices
+  - linear-algebra
+  - math
+  - rust
+license: MIT
+commit: ed2bf29af79906e29cabe142d0d45792698b99bc
+version: 0.1.8
+date-released: '2023-01-25'

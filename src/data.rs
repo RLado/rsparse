@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader};
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
 ///
-fn cumsum(p: &mut Vec<i64>, c: &mut Vec<i64>, n: usize) -> usize {
+fn cumsum(p: &mut Vec<isize>, c: &mut Vec<isize>, n: usize) -> usize {
     let mut nz = 0;
     for i in 0..n {
         p[i] = nz;
@@ -35,7 +35,7 @@ pub struct Sprs {
     /// number of columns
     pub n: usize,
     /// column pointers (size n+1) (Marks the index on which data starts in each column)
-    pub p: Vec<i64>,
+    pub p: Vec<isize>,
     /// row indicies, size nzmax
     pub i: Vec<usize>,
     /// numericals values, size nzmax
@@ -179,7 +179,7 @@ impl Sprs {
                 self.i.remove(i);
                 // fix the column pointers
                 for j in (0..self.p.len()).rev() {
-                    if (i as i64) < self.p[j] {
+                    if (i as isize) < self.p[j] {
                         self.p[j] -= 1;
                     } else {
                         break;
@@ -285,7 +285,7 @@ impl Sprs {
                 let p_str = t.replace("]", "");
                 // populate `Vec`
                 for item in p_str.split(",") {
-                    self.p.push(item.replace(" ", "").parse::<i64>()?);
+                    self.p.push(item.replace(" ", "").parse::<isize>()?);
                 }
             } else if line_read.contains("i:") {
                 let i_str = line_read.split(":").collect::<Vec<&str>>()[1];
@@ -325,7 +325,7 @@ pub struct Trpl {
     /// number of columns
     pub n: usize,
     /// column indices
-    pub p: Vec<i64>,
+    pub p: Vec<isize>,
     /// row indicies
     pub i: Vec<usize>,
     /// numericals values
@@ -356,7 +356,7 @@ impl Trpl {
             self.n = column + 1;
         }
 
-        self.p.push(column as i64);
+        self.p.push(column as isize);
         self.i.push(row);
         self.x.push(value);
     }
@@ -430,13 +430,13 @@ impl Trpl {
 #[derive(Clone, Debug)]
 pub struct Symb {
     /// inverse row perm. for QR, fill red. perm for Chol
-    pub pinv: Option<Vec<i64>>,
+    pub pinv: Option<Vec<isize>>,
     /// fill-reducing column permutation for LU and QR
-    pub q: Option<Vec<i64>>,
+    pub q: Option<Vec<isize>>,
     /// elimination tree for Cholesky and QR
-    pub parent: Vec<i64>,
+    pub parent: Vec<isize>,
     /// column pointers for Cholesky, row counts for QR
-    pub cp: Vec<i64>,
+    pub cp: Vec<isize>,
     /// nº of rows for QR, after adding fictitious rows
     pub m2: usize,
     /// nº entries in L for LU or Cholesky; in V for QR
@@ -471,7 +471,7 @@ pub struct Nmrc {
     /// U for LU, R for QR, not used for Cholesky
     pub u: Sprs,
     /// partial pivoting for LU
-    pub pinv: Option<Vec<i64>>,
+    pub pinv: Option<Vec<isize>>,
     /// beta [0..n-1] for QR
     pub b: Vec<f64>,
 }

@@ -1,6 +1,6 @@
 [package]
 name = "rsparse"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Ricard Lado"]
 
 description = "A Rust library for solving sparse linear systems using direct methods."

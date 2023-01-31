@@ -1,4 +1,4 @@
-# <span style="color:#c45508">r</span>sparse
+# <span style="color:#c45508">rs</span>parse
 
 A Rust library for solving sparse linear systems using direct methods.
 
@@ -81,7 +81,7 @@ fn main(){
     print_matrix(&at.todense());
 
     // B = A + A'
-    let b = rsparse::add(&a,&at,1.,1.); // C=alpha*A+beta*B
+    let b = rsparse::add(&a, &at, 1., 1.); // C=alpha*A+beta*B
     // Transform to dense and print result
     println!("\nB");
     print_matrix(&b.todense());
@@ -93,11 +93,9 @@ fn main(){
     print_matrix(&c.todense());
 }
 
-fn print_matrix(vec: &Vec<Vec<f64>>) { // source: https://stackoverflow.com/questions/36111784/how-to-convert-a-vecvecf64-into-a-string
+fn print_matrix(vec: &Vec<Vec<f64>>) {
     for row in vec {
-        let cols_str: Vec<_> = row.iter().map(ToString::to_string).collect();
-        let line = cols_str.join("\t");
-        println!("{}", line);
+        println!("{:?}", row);
     }
 }
 ```

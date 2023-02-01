@@ -19,6 +19,5 @@ keywords:
   - math
   - rust
 license: MIT
-commit: ed2bf29af79906e29cabe142d0d45792698b99bc
 version: 0.1.9
 date-released: '2023-01-31'

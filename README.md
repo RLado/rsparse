@@ -71,26 +71,26 @@ fn main(){
 
     // Transform A to dense and print result
     println!("\nA");
-    print_matrix(&a.todense());
+    print_matrix(&a.to_dense());
 
 
     // Transpose A
     let at = rsparse::transpose(&a);
     // Transform to dense and print result
     println!("\nAt");
-    print_matrix(&at.todense());
+    print_matrix(&at.to_dense());
 
     // B = A + A'
     let b = rsparse::add(&a, &at, 1., 1.); // C=alpha*A+beta*B
     // Transform to dense and print result
     println!("\nB");
-    print_matrix(&b.todense());
+    print_matrix(&b.to_dense());
 
     // C = A * B
     let c = rsparse::multiply(&a, &b);
     // Transform to dense and print result
     println!("\nC");
-    print_matrix(&c.todense());
+    print_matrix(&c.to_dense());
 }
 
 fn print_matrix(vec: &Vec<Vec<f64>>) {

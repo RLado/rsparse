@@ -69,26 +69,26 @@
 //!
 //!     // Transform A to dense and print result
 //!     println!("\nA");
-//!     print_matrix(&a.todense());
+//!     print_matrix(&a.to_dense());
 //!
 //!
 //!     // Transpose A
 //!     let at = rsparse::transpose(&a);
 //!     // Transform to dense and print result
 //!     println!("\nAt");
-//!     print_matrix(&at.todense());
+//!     print_matrix(&at.to_dense());
 //!
 //!     // B = A + A'
 //!     let b = rsparse::add(&a, &at, 1., 1.); // C=alpha*A+beta*B
 //!     // Transform to dense and print result
 //!     println!("\nB");
-//!     print_matrix(&b.todense());
+//!     print_matrix(&b.to_dense());
 //!
 //!     // C = A * B
 //!     let c = rsparse::multiply(&a, &b);
 //!     // Transform to dense and print result
 //!     println!("\nC");
-//!     print_matrix(&c.todense());
+//!     print_matrix(&c.to_dense());
 //! }
 //!
 //! fn print_matrix(vec: &Vec<Vec<f64>>) {
@@ -231,7 +231,7 @@ use data::{Nmrc, Sprs, Symb};
 ///     r_sparse.from_vec(&r);
 ///
 ///     // Check as dense
-///     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).todense(), r);
+///     assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).to_dense(), r);
 /// }
 /// ```
 ///
@@ -694,7 +694,7 @@ pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
 ///     let c = rsparse::multiply(&a_sparse, &b_sparse);
 ///
 ///     assert_eq!(
-///         c.todense(),
+///         c.to_dense(),
 ///         vec![vec![18., 2., 18.], vec![0., 0., 2.], vec![90., 9., 99.]]
 ///     )
 /// }
@@ -1076,7 +1076,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
 ///     a_sparse.from_vec(&a);
 ///
 ///     assert_eq!(
-///         rsparse::transpose(&a_sparse).todense(),
+///         rsparse::transpose(&a_sparse).to_dense(),
 ///         vec![
 ///             vec![2.1615, 2.2828, 2.2156, 1.0244, 2.0367],
 ///             vec![2.0044, 1.9089, 1.8776, 0.8742, 1.5642],

@@ -138,22 +138,23 @@ impl Sprs {
     ///        x: vec![2., 3., 4., 5., 6., 7.]
     ///    };
     ///    let mut b = rsparse::data::Sprs::new();
-    ///    b.from_triplet(&a);
+    ///    b.from_trpl(&a);
     ///
-    ///    assert_eq!(b.todense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
+    ///    assert_eq!(b.to_dense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
     /// }
     /// ```
     ///
     /// If you need duplicate values to be summed use `Trpl`'s method `sum_dupl()`
     /// before running this method.
     ///
-    pub fn from_triplet(&mut self, t: &Trpl) {
+    pub fn from_trpl(&mut self, t: &Trpl) {
         self.nzmax = t.x.len();
         self.m = t.m;
         self.n = t.n;
-        self.p = vec![0; self.n + 1];
+        self.p = vec![0; t.n + 1];
         self.i = vec![0; t.x.len()];
         self.x = vec![0.; t.x.len()];
+        
         // get workspace
         let mut w = vec![0; self.n];
 
@@ -200,7 +201,7 @@ impl Sprs {
 
     /// Converts sparse matrix to dense matrix
     ///
-    pub fn todense(&self) -> Vec<Vec<f64>> {
+    pub fn to_dense(&self) -> Vec<Vec<f64>> {
         let mut r = vec![vec![0.; self.n]; self.m];
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
@@ -359,6 +360,36 @@ impl Trpl {
         self.p.push(column as isize);
         self.i.push(row);
         self.x.push(value);
+    }
+
+    /// Convert `Trpl` to `Sprs` matrix
+    /// 
+    pub fn to_sprs(&self) -> Sprs {
+        let mut s = Sprs{
+            nzmax: self.x.len(),
+            m: self.m,
+            n: self.n,
+            p: vec![0; self.n + 1],
+            i: vec![0; self.x.len()],
+            x: vec![0.; self.x.len()],
+        };
+        
+        // get workspace
+        let mut w = vec![0; s.n];
+
+        for k in 0..self.p.len() {
+            w[self.p[k] as usize] += 1; // column counts
+        }
+        cumsum(&mut s.p, &mut w, s.n); // column pointers
+        let mut p;
+        for k in 0..self.p.len() {
+            p = w[self.p[k] as usize] as usize;
+            s.i[p] = self.i[k]; // A(i,j) is the pth entry in C
+            w[self.p[k] as usize] += 1;
+            s.x[p] = self.x[k];
+        }
+
+        return s;
     }
 
     /// Sum duplicate entries (in the same position)

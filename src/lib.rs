@@ -272,7 +272,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     let n = a.n;
 
     let mut n_mat = Nmrc::new();
-    let mut w = vec![0; 3 * n]; // This variable here seems to be key
+    let mut w = vec![0; 3 * n];
     let ws = n; // pointer of w
     let wc = 2 * n; // pointer of w
     let mut x = vec![0.; n];

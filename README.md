@@ -81,13 +81,13 @@ fn main(){
     print_matrix(&at.to_dense());
 
     // B = A + A'
-    let b = rsparse::add(&a, &at, 1., 1.); // C=alpha*A+beta*B
+    let b = &a + &at;
     // Transform to dense and print result
     println!("\nB");
     print_matrix(&b.to_dense());
 
     // C = A * B
-    let c = rsparse::multiply(&a, &b);
+    let c = &a * &b;
     // Transform to dense and print result
     println!("\nC");
     print_matrix(&c.to_dense());

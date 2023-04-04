@@ -50,8 +50,7 @@
 //!     };
 //!
 //!     // Import the same matrix from a dense structure
-//!     let mut a2 = rsparse::data::Sprs::new();
-//!     a2.from_vec(
+//!     let mut a2 = rsparse::data::Sprs::new_from_vec(
 //!         &vec![
 //!             vec![0., 0., 2.],
 //!             vec![1., 0., 0.],
@@ -79,13 +78,13 @@
 //!     print_matrix(&at.to_dense());
 //!
 //!     // B = A + A'
-//!     let b = rsparse::add(&a, &at, 1., 1.); // C=alpha*A+beta*B
+//!     let b = &a + &at;
 //!     // Transform to dense and print result
 //!     println!("\nB");
 //!     print_matrix(&b.to_dense());
 //!
 //!     // C = A * B
-//!     let c = rsparse::multiply(&a, &b);
+//!     let c = &a * &b;
 //!     // Transform to dense and print result
 //!     println!("\nC");
 //!     print_matrix(&c.to_dense());
@@ -139,9 +138,8 @@
 //!     ];
 //!
 //!     // Convert A to sparse
-//!     let mut a_sparse = rsparse::data::Sprs::new();
-//!     a_sparse.from_vec(&a);
-//!
+//!     let mut a_sparse = rsparse::data::Sprs::new_from_vec(&a);
+//! 
 //!     // Generate arbitrary b vector
 //!     let mut b = vec![
 //!         0.4377,
@@ -188,8 +186,6 @@
 //! Copyright (c) 2023 Ricard Lado
 
 pub mod data;
-use std::vec;
-
 use data::{Nmrc, Sprs, Symb};
 
 
@@ -331,7 +327,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 ///
 /// x=A\b where A is symmetric positive definite; b overwritten with solution
 ///
-/// Parameters:
+/// # Parameters:
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
@@ -875,7 +871,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 ///
 /// x=A\b where A can be rectangular; b overwritten with solution
 ///
-/// Parameters:
+/// # Parameters:
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
@@ -954,7 +950,7 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 
 /// Ordering and symbolic analysis for a Cholesky factorization
 ///
-/// Parameters:
+/// # Parameters:
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
@@ -984,6 +980,37 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 
 /// Scalar plus sparse matrix. C = alpha + A
 /// 
+/// # Example:
+/// ```
+/// fn main(){
+///     let a = vec![
+///         vec![8., 8., 6., 6., 2.],
+///         vec![4., 9., 7., 5., 9.],
+///         vec![2., 3., 8., 4., 1.],
+///         vec![4., 7., 6., 8., 9.],
+///         vec![9., 1., 8., 7., 1.],
+///     ];
+///     let mut a_sparse = rsparse::data::Sprs::new();
+///     a_sparse.from_vec(&a);
+/// 
+///     let r = vec![
+///         vec![10., 10., 8., 8., 4.],
+///         vec![6., 11., 9., 7., 11.],
+///         vec![4., 5., 10., 6., 3.],
+///         vec![6., 9., 8., 10., 11.],
+///         vec![11., 3., 10., 9., 3.],
+///     ];
+///     let mut r_sparse = rsparse::data::Sprs::new();
+///     r_sparse.from_vec(&r);
+/// 
+///     // Add 2
+///     assert_eq!(
+///         rsparse::scpmat(2., &a_sparse).to_dense(),
+///         r_sparse.to_dense()
+///     );
+/// }
+/// ```
+/// 
 pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
     let mut c = Sprs::new();
     c.m = a.m;
@@ -997,6 +1024,37 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 }
 
 /// Scalar times sparse matrix. C = alpha * A
+/// 
+/// # Example:
+/// ```
+/// fn main(){
+///    let a = vec![
+///        vec![8., 8., 6., 6., 2.],
+///        vec![4., 9., 7., 5., 9.],
+///        vec![2., 3., 8., 4., 1.],
+///        vec![4., 7., 6., 8., 9.],
+///        vec![9., 1., 8., 7., 1.],
+///     ];
+///     let mut a_sparse = rsparse::data::Sprs::new();
+///     a_sparse.from_vec(&a);
+/// 
+///     let r = vec![
+///         vec![16., 16., 12., 12., 4.],
+///         vec![8., 18., 14., 10., 18.],
+///         vec![4., 6., 16., 8., 2.],
+///         vec![8., 14., 12., 16., 18.],
+///         vec![18., 2., 16., 14., 2.],
+///     ];
+///     let mut r_sparse = rsparse::data::Sprs::new();
+///     r_sparse.from_vec(&r);
+/// 
+///     // Multiply a by 2
+///     assert_eq!(
+///         rsparse::scxmat(2., &a_sparse).to_dense(),
+///         r_sparse.to_dense()
+///     );
+/// }
+/// ```
 /// 
 pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
     let mut c = Sprs::new();
@@ -1226,7 +1284,7 @@ pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
 
 /// amd(...) carries out the approximate minimum degree algorithm.
 /// p = amd(A+A') if symmetric is true, or amd(A'A) otherwise
-/// Parameters:
+/// # Parameters:
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,

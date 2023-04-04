@@ -85,6 +85,22 @@ impl Sprs {
         return s;
     }
 
+    /// Allocates a matrix from a 2D array of Vec
+    /// 
+    pub fn new_from_vec(t: &Vec<Vec<f64>>) -> Sprs {
+        let mut s = Sprs::new();
+        s.from_vec(t);
+        return s;
+    }
+
+    /// Allocates a matrix from a `Trpl` object
+    /// 
+    pub fn new_from_trpl(t: &Trpl) -> Sprs {
+        let mut s = Sprs::new();
+        s.from_trpl(t);
+        return s;
+    }
+
     /// Get element from (row, column) position
     ///
     /// *- Note: This function may negatively impact performance, and should be

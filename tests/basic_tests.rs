@@ -806,7 +806,7 @@ fn scpmat_1(){
     let mut r_sparse = rsparse::data::Sprs::new();
     r_sparse.from_vec(&r);
 
-    // Multiply a by 2
+    // Add 2
     assert_eq!(rsparse::scpmat(2., &a_sparse).x, r_sparse.x);
     assert_eq!(rsparse::scpmat(2., &a_sparse).i, r_sparse.i);
     assert_eq!(rsparse::scpmat(2., &a_sparse).p, r_sparse.p);
@@ -1048,6 +1048,31 @@ fn scal_ops_1(){
     assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (65. * &a_sparse).to_dense());
     // Test div
     assert_eq!(rsparse::scxmat(1./65., &a_sparse).to_dense(), (&a_sparse / 65.).to_dense());
+}
+
+#[test]
+fn scal_ops_2(){
+    let a = vec![
+        vec![2., 2., 4., 4., 1.],
+        vec![3., 4., 5., 8., 3.],
+        vec![2., 6., 3., 9., 3.],
+        vec![5., 7., 6., 7., 1.],
+        vec![7., 1., 8., 9., 2.],
+    ];
+    let mut a_sparse = rsparse::data::Sprs::new();
+    a_sparse.from_vec(&a);
+
+    // Test add
+    assert_eq!(rsparse::scpmat(65., &a_sparse).to_dense(), (a_sparse.clone() + 65.).to_dense());
+    assert_eq!(rsparse::scpmat(65., &a_sparse).to_dense(), (65. + a_sparse.clone()).to_dense());
+    // Test sub
+    assert_eq!(rsparse::scpmat(-65., &a_sparse).to_dense(), (a_sparse.clone() - 65.).to_dense());
+    assert_eq!(rsparse::scpmat(65., &rsparse::scxmat(-1., &a_sparse)).to_dense(), (65. - a_sparse.clone()).to_dense());
+    // Test mul
+    assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (a_sparse.clone() * 65.).to_dense());
+    assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (65. * a_sparse.clone()).to_dense());
+    // Test div
+    assert_eq!(rsparse::scxmat(1./65., &a_sparse).to_dense(), (a_sparse.clone() / 65.).to_dense());
 }
 
 #[test]

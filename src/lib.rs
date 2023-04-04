@@ -982,6 +982,34 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
     return s;
 }
 
+/// Scalar plus sparse matrix. C = alpha + A
+/// 
+pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
+    let mut c = Sprs::new();
+    c.m = a.m;
+    c.n = a.n;
+    c.nzmax = a.nzmax;
+    c.p = a.p.clone();
+    c.i = a.i.clone();
+    c.x = a.x.iter().map(|x| x + alpha).collect();
+
+    return c;
+}
+
+/// Scalar times sparse matrix. C = alpha * A
+/// 
+pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
+    let mut c = Sprs::new();
+    c.m = a.m;
+    c.n = a.n;
+    c.nzmax = a.nzmax;
+    c.p = a.p.clone();
+    c.i = a.i.clone();
+    c.x = a.x.iter().map(|x| x * alpha).collect();
+
+    return c;
+}
+
 /// Print a sparse matrix
 ///
 pub fn sprs_print(a: &Sprs, brief: bool) {

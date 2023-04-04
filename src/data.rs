@@ -4,6 +4,7 @@
 use std::fs::File;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use crate::{add, multiply, scpmat, scxmat};
 
 // --- Utilities ---------------------------------------------------------------
 
@@ -68,6 +69,19 @@ impl Sprs {
             i: vec![0; nzmax],
             x: vec![0.; nzmax],
         };
+        return s;
+    }
+
+    /// Allocates an `n`x`n` identity matrix
+    /// 
+    pub fn eye(n: usize) -> Sprs {
+        let mut s = Sprs::zeros(n, n, n);
+        for i in 0..n {
+            s.p[i] = i as isize;
+            s.i[i] = i;
+            s.x[i] = 1.;
+        }
+        s.p[n] = n as isize;
         return s;
     }
 
@@ -310,6 +324,226 @@ impl Sprs {
         }
 
         return Ok(());
+    }
+}
+
+// Implementing operators for `Sprs`
+
+impl std::ops::Add for Sprs {
+    type Output = Self;
+
+    /// Overloads the `+` operator. Adds two sparse matrices
+    /// 
+    fn add(self, other: Sprs) -> Sprs {
+        return add(&self, &other, 1., 1.);
+    }
+}
+
+impl std::ops::Add for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `+` operator. Adds two references to sparse matrices
+    /// 
+    fn add(self, other: &Sprs) -> Sprs {
+        return add(self, other, 1., 1.);
+    }
+}
+
+impl std::ops::Sub for Sprs {
+    type Output = Self;
+
+    /// Overloads the `-` operator. Subtracts two sparse matrices
+    /// 
+    fn sub(self, other: Sprs) -> Sprs {
+        return add(&self, &other, 1., -1.);
+    }
+}
+
+impl std::ops::Sub for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `-` operator. Subtracts two references to sparse matrices
+    /// 
+    fn sub(self, other: &Sprs) -> Sprs {
+        return add(self, other, 1., -1.);
+    }
+}
+
+impl std::ops::Mul for Sprs {
+    type Output = Self;
+
+    /// Overloads the `*` operator. Multiplies two sparse matrices
+    /// 
+    fn mul(self, other: Sprs) -> Sprs {
+        return multiply(&self, &other);
+    }
+}
+
+impl std::ops::Mul for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `*` operator. Multiplies two references to sparse matrices
+    /// 
+    fn mul(self, other: &Sprs) -> Sprs {
+        return multiply(self, other);
+    }
+}
+
+// Implementing operators for `Sprs` and `f64` types
+
+impl std::ops::Add<f64> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a 
+    /// sparse matrix
+    /// 
+    fn add(self, other: f64) -> Sprs {
+        return scpmat(other, &self);
+    }
+}
+
+impl std::ops::Add<f64> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a 
+    /// sparse matrix
+    /// 
+    fn add(self, other: f64) -> Sprs {
+        return scpmat(other, &self);
+    }
+}
+
+impl std::ops::Sub<f64> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn sub(self, other: f64) -> Sprs {
+        return scpmat(-other, &self);
+    }
+}
+
+impl std::ops::Sub<f64> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn sub(self, other: f64) -> Sprs {
+        return scpmat(-other, &self);
+    }
+}
+
+impl std::ops::Mul<f64> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn mul(self, other: f64) -> Sprs {
+        return scxmat(other, &self);
+    }
+}
+
+impl std::ops::Mul<f64> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn mul(self, other: f64) -> Sprs {
+        return scxmat(other, &self);
+    }
+}
+
+impl std::ops::Div<f64> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `/` operator. Divides by an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn div(self, other: f64) -> Sprs {
+        return scxmat(other.powi(-1), &self);
+    }
+}
+
+impl std::ops::Div<f64> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `/` operator. Divides by an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn div(self, other: f64) -> Sprs {
+        return scxmat(other.powi(-1), &self);
+    }
+}
+
+// Implementing operators for `f64` and `Sprs` types
+
+impl std::ops::Add<Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a 
+    /// sparse matrix
+    /// 
+    fn add(self, other: Sprs) -> Sprs {
+        return scpmat(self, &other);
+    }
+}
+
+impl std::ops::Add<&Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a 
+    /// sparse matrix
+    /// 
+    fn add(self, other: &Sprs) -> Sprs {
+        return scpmat(self, other);
+    }
+}
+
+impl std::ops::Sub<Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn sub(self, other: Sprs) -> Sprs {
+        return scpmat(self, &scxmat(-1., &other));
+    }
+}
+
+impl std::ops::Sub<&Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn sub(self, other: &Sprs) -> Sprs {
+        return scpmat(self, &scxmat(-1., other));
+    }
+}
+
+impl std::ops::Mul<Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn mul(self, other: Sprs) -> Sprs {
+        return scxmat(self, &other);
+    }
+}
+
+impl std::ops::Mul<&Sprs> for f64 {
+    type Output = Sprs;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of 
+    /// a sparse matrix
+    /// 
+    fn mul(self, other: &Sprs) -> Sprs {
+        return scxmat(self, other);
     }
 }
 

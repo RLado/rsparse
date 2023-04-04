@@ -21,9 +21,9 @@
 //! - Solve sparse linear systems
 //!
 //! ### Solvers
-//! - **lsolve**: Solve a lower triangular system. Solves L*x=b where x and b are dense.
-//! - **ltsolve**: Solve L’*x=b where x and b are dense.
-//! - **usolve**: Solve an upper triangular system. Solves U*x=b where x and b are dense
+//! - **lsolve**: Solve a lower triangular system. Solves Lx=b where x and b are dense.
+//! - **ltsolve**: Solve L’x=b where x and b are dense.
+//! - **usolve**: Solve an upper triangular system. Solves Ux=b where x and b are dense
 //! - **utsolve**: Solve U’x=b where x and b are dense
 //! - **cholsol**: A\b solver using Cholesky factorization. Where A is a defined positive `Sprs` matrix and b is a dense vector
 //! - **lusol**: A\b solver using LU factorization. Where A is a square `Sprs` matrix and b is a dense vector
@@ -139,7 +139,7 @@
 //!
 //!     // Convert A to sparse
 //!     let mut a_sparse = rsparse::data::Sprs::new_from_vec(&a);
-//! 
+//!
 //!     // Generate arbitrary b vector
 //!     let mut b = vec![
 //!         0.4377,
@@ -188,10 +188,9 @@
 pub mod data;
 use data::{Nmrc, Sprs, Symb};
 
-
 // --- Public functions --------------------------------------------------------
 
-/// C = alpha*A + beta*B
+/// C = alpha * A + beta * B
 ///
 /// # Example:
 /// ```
@@ -368,9 +367,9 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     pvec(n, &s.pinv, &x, b); // b = P'*x
 }
 
-/// gaxpy: Generalized A times X Plus Y
+/// Generalized A times X Plus Y
 ///
-/// r = A*x+y
+/// r = A * x + y
 ///
 /// # Example
 /// ```
@@ -399,7 +398,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
     return r;
 }
 
-/// Solves a lower triangular system. Solves L*x=b. Where x and b are dense.
+/// Solves a lower triangular system. Solves Lx=b. Where x and b are dense.
 ///
 /// The lsolve function assumes that the diagonal entry of L is always present
 /// and is the first entry in each column. Otherwise, the row indices in each
@@ -451,7 +450,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
     }
 }
 
-/// Solves L'*x=b. Where x and b are dense.
+/// Solves L'x=b. Where x and b are dense.
 ///
 /// On input, X contains the right hand side, and on output, the solution.
 ///
@@ -674,7 +673,7 @@ pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     ipvec(a.n, &s.q, &x, b); // b = Q*x
 }
 
-/// C = A*B
+/// C = A * B
 ///
 /// # Example
 /// ```
@@ -979,7 +978,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 }
 
 /// Scalar plus sparse matrix. C = alpha + A
-/// 
+///
 /// # Example:
 /// ```
 /// fn main(){
@@ -992,7 +991,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 ///     ];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     let r = vec![
 ///         vec![10., 10., 8., 8., 4.],
 ///         vec![6., 11., 9., 7., 11.],
@@ -1002,7 +1001,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 ///     ];
 ///     let mut r_sparse = rsparse::data::Sprs::new();
 ///     r_sparse.from_vec(&r);
-/// 
+///
 ///     // Add 2
 ///     assert_eq!(
 ///         rsparse::scpmat(2., &a_sparse).to_dense(),
@@ -1010,7 +1009,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 ///     );
 /// }
 /// ```
-/// 
+///
 pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
     let mut c = Sprs::new();
     c.m = a.m;
@@ -1024,7 +1023,7 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 }
 
 /// Scalar times sparse matrix. C = alpha * A
-/// 
+///
 /// # Example:
 /// ```
 /// fn main(){
@@ -1037,7 +1036,7 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 ///     ];
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-/// 
+///
 ///     let r = vec![
 ///         vec![16., 16., 12., 12., 4.],
 ///         vec![8., 18., 14., 10., 18.],
@@ -1047,7 +1046,7 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 ///     ];
 ///     let mut r_sparse = rsparse::data::Sprs::new();
 ///     r_sparse.from_vec(&r);
-/// 
+///
 ///     // Multiply a by 2
 ///     assert_eq!(
 ///         rsparse::scxmat(2., &a_sparse).to_dense(),
@@ -1055,7 +1054,7 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 ///     );
 /// }
 /// ```
-/// 
+///
 pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
     let mut c = Sprs::new();
     c.m = a.m;
@@ -1278,7 +1277,6 @@ pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
         x[j] /= u.x[(u.p[j + 1] - 1) as usize];
     }
 }
-
 
 // --- Private functions -------------------------------------------------------
 
@@ -2265,7 +2263,13 @@ fn pvec(n: usize, p: &Option<Vec<isize>>, b: &Vec<f64>, x: &mut Vec<f64>) {
 /// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
 /// xi [n...2n-1] used as workspace.
 ///
-fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut Vec<isize>, pinv: &Option<Vec<isize>>) -> usize {
+fn reach(
+    l: &mut Sprs,
+    b: &Sprs,
+    k: usize,
+    xi: &mut Vec<isize>,
+    pinv: &Option<Vec<isize>>,
+) -> usize {
     let mut top = l.n;
 
     for p in b.p[k] as usize..b.p[k + 1] as usize {
@@ -2557,7 +2561,6 @@ fn wclear(mark_v: isize, lemax: isize, ww: &mut Vec<isize>, w: usize, n: usize) 
     }
     return mark; // at this point, w [0..n-1] < mark holds
 }
-
 
 // --- Inline functions --------------------------------------------------------
 

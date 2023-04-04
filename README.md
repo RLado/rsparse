@@ -21,9 +21,9 @@ A Rust library for solving sparse linear systems using direct methods.
 - Solve sparse linear systems
 
 ### Solvers
-- **lsolve**: Solve a lower triangular system. Solves L*x=b where x and b are dense.
-- **ltsolve**: Solve L’*x=b where x and b are dense.
-- **usolve**: Solve an upper triangular system. Solves U*x=b where x and b are dense
+- **lsolve**: Solve a lower triangular system. Solves Lx=b where x and b are dense.
+- **ltsolve**: Solve L’x=b where x and b are dense.
+- **usolve**: Solve an upper triangular system. Solves Ux=b where x and b are dense
 - **utsolve**: Solve U’x=b where x and b are dense
 - **cholsol**: A\b solver using Cholesky factorization. Where A is a defined positive `Sprs` matrix and b is a dense vector
 - **lusol**: A\b solver using LU factorization. Where A is a square `Sprs` matrix and b is a dense vector

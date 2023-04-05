@@ -355,6 +355,16 @@ impl std::ops::Add for Sprs {
     }
 }
 
+impl std::ops::Add<&Sprs> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `+` operator. Adds two sparse matrices
+    ///
+    fn add(self, other: &Sprs) -> Sprs {
+        return add(&self, other, 1., 1.);
+    }
+}
+
 impl std::ops::Add for &Sprs {
     type Output = Sprs;
 
@@ -362,6 +372,16 @@ impl std::ops::Add for &Sprs {
     ///
     fn add(self, other: &Sprs) -> Sprs {
         return add(self, other, 1., 1.);
+    }
+}
+
+impl std::ops::Add<Sprs> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `+` operator. Adds two references to sparse matrices
+    ///
+    fn add(self, other: Sprs) -> Sprs {
+        return add(self, &other, 1., 1.);
     }
 }
 
@@ -375,6 +395,17 @@ impl std::ops::Sub for Sprs {
     }
 }
 
+impl std::ops::Sub<&Sprs> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `-` operator. Subtracts two sparse matrices
+    ///
+    fn sub(self, other: &Sprs) -> Sprs {
+        return add(&self, other, 1., -1.);
+    }
+}
+
+
 impl std::ops::Sub for &Sprs {
     type Output = Sprs;
 
@@ -382,6 +413,16 @@ impl std::ops::Sub for &Sprs {
     ///
     fn sub(self, other: &Sprs) -> Sprs {
         return add(self, other, 1., -1.);
+    }
+}
+
+impl std::ops::Sub<Sprs> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `-` operator. Subtracts two references to sparse matrices
+    ///
+    fn sub(self, other: Sprs) -> Sprs {
+        return add(self, &other, 1., -1.);
     }
 }
 
@@ -395,6 +436,16 @@ impl std::ops::Mul for Sprs {
     }
 }
 
+impl std::ops::Mul<&Sprs> for Sprs {
+    type Output = Self;
+
+    /// Overloads the `*` operator. Multiplies two sparse matrices
+    ///
+    fn mul(self, other: &Sprs) -> Sprs {
+        return multiply(&self, other);
+    }
+}
+
 impl std::ops::Mul for &Sprs {
     type Output = Sprs;
 
@@ -402,6 +453,16 @@ impl std::ops::Mul for &Sprs {
     ///
     fn mul(self, other: &Sprs) -> Sprs {
         return multiply(self, other);
+    }
+}
+
+impl std::ops::Mul<Sprs> for &Sprs {
+    type Output = Sprs;
+
+    /// Overloads the `*` operator. Multiplies two references to sparse matrices
+    ///
+    fn mul(self, other: Sprs) -> Sprs {
+        return multiply(self, &other);
     }
 }
 

@@ -43,7 +43,7 @@
 //!         n: 3,
 //!         // Values
 //!         x: vec![1., 9., 9., 2., 9.],
-//!         // Indices  
+//!         // Indices
 //!         i: vec![1, 2, 2, 0, 2],
 //!         // Pointers
 //!         p: vec![0, 2, 3, 5]
@@ -101,24 +101,24 @@
 //!
 //! ```result
 //! A
-//! 0	0	2
-//! 1	0	0
-//! 9	9	9
+//! 0   0   2
+//! 1   0   0
+//! 9   9   9
 //!
 //! At
-//! 0	1	9
-//! 0	0	9
-//! 2	0	9
+//! 0   1   9
+//! 0   0   9
+//! 2   0   9
 //!
 //! B
-//! 0	1	11
-//! 1	0	9
-//! 11	9	18
+//! 0   1   11
+//! 1   0   9
+//! 11  9   18
 //!
 //! C
-//! 22	18	36
-//! 0	1	11
-//! 108	90	342
+//! 22  18  36
+//! 0   1   11
+//! 108 90  342
 //! ```
 //!
 //!
@@ -242,8 +242,8 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 
     for j in 0..n {
         c.p[j] = nz as isize; // column j of C starts here
-        nz = scatter(&a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
-        nz = scatter(&b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
+        nz = scatter(a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
+        nz = scatter(b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
 
         for p in c.p[j] as usize..nz {
             c.x[p] = x[c.i[p]];
@@ -252,7 +252,8 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
     c.p[n] = nz as isize; // finalize the last column of C
 
     c.quick_trim();
-    return c;
+
+    c
 }
 
 /// L = chol (A, [Pinv parent cp]), Pinv is optional
@@ -272,12 +273,14 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     let wc = 2 * n; // pointer of w
     let mut x = vec![0.; n];
 
-    let c;
-    if s.pinv.is_some() {
-        c = symperm(&a, &s.pinv);
-    } else {
-        c = a.clone();
-    }
+    let c = {
+        if s.pinv.is_some() {
+            symperm(&a, &s.pinv)
+        } else {
+            a.clone()
+        }
+    };
+
     n_mat.l = Sprs::zeros(n, n, s.cp[n] as usize);
     for k in 0..n {
         // --- Nonzero pattern of L(k,:) ------------------------------------
@@ -319,7 +322,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     }
     n_mat.l.p[n] = s.cp[n]; // finalize L
 
-    return n_mat;
+    n_mat
 }
 
 /// A\b solver using Cholesky factorization.
@@ -330,7 +333,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///
@@ -357,8 +360,8 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 ///
 pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     let n = a.n;
-    let mut s = schol(&a, order); // ordering and symbolic analysis
-    let n_mat = chol(&a, &mut s); // numeric Cholesky factorization
+    let mut s = schol(a, order); // ordering and symbolic analysis
+    let n_mat = chol(a, &mut s); // numeric Cholesky factorization
     let mut x = vec![0.; n];
 
     ipvec(n, &s.pinv, b, &mut x); // x = P*b
@@ -395,7 +398,8 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
             r[a_mat.i[p as usize]] += a_mat.x[p as usize] * x[j];
         }
     }
-    return r;
+
+    r
 }
 
 /// Solves a lower triangular system. Solves Lx=b. Where x and b are dense.
@@ -441,7 +445,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
 /// }
 /// ```
 ///
-pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
+pub fn lsolve(l: &Sprs, x: &mut [f64]) {
     for j in 0..l.n {
         x[j] /= l.x[l.p[j] as usize];
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
@@ -483,7 +487,7 @@ pub fn lsolve(l: &Sprs, x: &mut Vec<f64>) {
 /// }
 /// ```
 ///
-pub fn ltsolve(l: &Sprs, x: &mut Vec<f64>) {
+pub fn ltsolve(l: &Sprs, x: &mut [f64]) {
     for j in (0..l.n).rev() {
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
             x[j] -= l.x[p] * x[l.i[p]];
@@ -609,16 +613,16 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     n_mat.l.quick_trim();
     n_mat.u.quick_trim();
 
-    return n_mat;
+    n_mat
 }
 
 /// A\b solver using LU factorization.
 ///
-/// x=A\b where A is unsymmetric; b (dense) overwritten with solution
+/// x=A\b where A is asymmetric; b (dense) overwritten with solution
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///
@@ -749,7 +753,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
 ///
 ///     let mut a_sparse = rsparse::data::Sprs::new();
 ///     a_sparse.from_vec(&a);
-///         
+///
 ///     assert!(f64::abs(rsparse::norm(&a_sparse) - 4.4199) < 1e-3);
 /// }
 /// ```
@@ -874,7 +878,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///
@@ -953,7 +957,7 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///
@@ -1103,7 +1107,7 @@ pub fn sprs_print(a: &Sprs, brief: bool) {
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///
@@ -1201,7 +1205,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
 /// # Example:
 /// ```
 /// fn main() {
-///    let u =vec![    
+///    let u =vec![
 ///        vec![0.7824, 0.4055, 0.0827, 0.9534, 0.9713, 0.1418, 0.0781],
 ///        vec![0.0, 0.7766, 0.2981, 0.2307, -0.3172, 0.6819, 0.5979],
 ///        vec![0.0, 0.0, 0.2986, -0.5576, 0.5928, -0.2759, -0.1672],
@@ -1243,7 +1247,7 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
 /// # Example:
 /// ```
 /// fn main() {
-///    let u =vec![    
+///    let u =vec![
 ///        vec![0.9842, 0.1720, 0.9948, 0.2766, 0.4560, 0.1462, 0.8124],
 ///        vec![0.0000, 0.6894, 0.1043, 0.4486, 0.5217, 0.7157, 0.4132],
 ///        vec![0.0000, 0.0000, -0.5500, -0.2340, 0.0822, 0.2176, -0.1996],
@@ -1286,7 +1290,7 @@ pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
 ///
 /// Input, i8 ORDER:
 /// - -1:natural,
-/// - 0:Cholesky,  
+/// - 0:Cholesky,
 /// - 1:LU,
 /// - 2:QR
 ///

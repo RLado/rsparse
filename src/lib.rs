@@ -826,10 +826,9 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
                 // increment statement
                 i = s.parent[i as usize];
             }
-            while len > 0 {
+            for j in 1..(len + 1) {
                 top -= 1;
-                len -= 1;
-                w[ws + top] = w[ws + len]; // push path on stack
+                w[ws + top] = w[ws + len - j]; // push path on stack
             }
             i = s.pinv.as_ref().unwrap()[a.i[p as usize]]; // i = permuted row of A(:,col)
             x[i as usize] = a.x[p as usize]; // x (i) = A(.,col)

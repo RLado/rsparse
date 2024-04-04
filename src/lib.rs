@@ -667,9 +667,8 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     let mut x = vec![0.; a.n];
     let mut s;
-    let n;
     s = sqr(&a, order, false); // ordering and symbolic analysis
-    n = lu(a, &mut s, tol); // numeric LU factorization
+    let n = lu(a, &mut s, tol); // numeric LU factorization
 
     ipvec(a.n, &n.pinv, b, &mut x); // x = P*b
     lsolve(&n.l, &mut x); // x = L\x
@@ -726,14 +725,14 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
                 nz,
             );
         }
-        for p in c.p[j] as usize..nz as usize {
+        for p in c.p[j] as usize..nz {
             c.x[p] = x[c.i[p]];
         }
     }
     c.p[b.n] = nz as isize;
     c.quick_trim();
 
-    return c;
+    c
 }
 
 /// Computes the 1-norm of a sparse matrix
@@ -767,7 +766,8 @@ pub fn norm(a: &Sprs) -> f64 {
         }
         norm_r = f64::max(norm_r, s);
     }
-    return norm_r;
+
+    norm_r
 }
 
 /// Sparse QR factorization (V,beta,p,R) = qr (A)
@@ -795,8 +795,8 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     let mut n_mat = Nmrc::new();
     let mut beta = vec![0.; n]; // equivalent to n_mat.b
 
-    for i in 0..s.m2 {
-        w[i] = -1; // clear w, to mark nodes
+    for w_val in w.iter_mut().take(s.m2) {
+        *w_val = -1; // clear w, to mark nodes
     }
     rnz = 0;
     vnz = 0;
@@ -809,11 +809,11 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
         v.i[vnz] = k;
         vnz += 1;
         top = n;
-        if s.q.is_some() {
-            col = s.q.as_ref().unwrap()[k];
-        } else {
-            col = k as isize;
-        }
+        col = match &s.q {
+            Some(q) => q[k],
+            None => k as isize,
+        };
+
         for p in a.p[col as usize]..a.p[(col + 1) as usize] {
             // find R(:,k) pattern
             i = s.pinv.as_ref().unwrap()[leftmost_p + a.i[p as usize]]; // i = min(find(A(i,Q)))
@@ -867,7 +867,8 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     n_mat.l = v;
     n_mat.u = r;
     n_mat.b = beta;
-    return n_mat;
+
+    n_mat
 }
 
 /// A\b solver using QR factorization.
@@ -925,11 +926,11 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     let m = a.m;
 
     if m >= n {
-        let s = sqr(&a, order, true); // ordering and symbolic analysis
-        let n_mat = qr(&a, &s); // numeric QR factorization
+        let s = sqr(a, order, true); // ordering and symbolic analysis
+        let n_mat = qr(a, &s); // numeric QR factorization
         let mut x = vec![0.; s.m2];
 
-        ipvec(m, &s.pinv, &b, &mut x); // x(0:m-1) = P*b(0:m-1)
+        ipvec(m, &s.pinv, b, &mut x); // x(0:m-1) = P*b(0:m-1)
         for k in 0..n {
             // apply Householder refl. to x
             happly(&n_mat.l, k, n_mat.b[k], &mut x);
@@ -937,12 +938,12 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         usolve(&n_mat.u, &mut x); // x = R\x
         ipvec(n, &s.q, &x, b); // b(0:n-1) = Q*x (permutation)
     } else {
-        let at = transpose(&a); // Ax=b is underdetermined
+        let at = transpose(a); // Ax=b is underdetermined
         let s = sqr(&at, order, true); // ordering and symbolic analysis
         let n_mat = qr(&at, &s); // numeric QR factorization of A'
         let mut x = vec![0.; s.m2];
 
-        pvec(m, &s.q, &b, &mut x); // x(0:m-1) = Q'*b (permutation)
+        pvec(m, &s.q, b, &mut x); // x(0:m-1) = Q'*b (permutation)
         utsolve(&n_mat.u, &mut x); // x = R'\x
         for k in (0..m).rev() {
             happly(&n_mat.l, k, n_mat.b[k], &mut x);
@@ -964,10 +965,10 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 pub fn schol(a: &Sprs, order: i8) -> Symb {
     let n = a.n;
     let mut s = Symb::new(); // allocate symbolic analysis
-    let p = amd(&a, order); // P = amd(A+A'), or natural
+    let p = amd(a, order); // P = amd(A+A'), or natural
     s.pinv = pinvert(&p, n); // find inverse permutation
     drop(p);
-    let c_mat = symperm(&a, &s.pinv); // C = spones(triu(A(P,P)))
+    let c_mat = symperm(a, &s.pinv); // C = spones(triu(A(P,P)))
     s.parent = etree(&c_mat, false); // find e tree of C
     let post = post(n, &s.parent); // postorder the etree
     let mut c = counts(&c_mat, &s.parent, &post, false); // find column counts of chol(C)
@@ -978,7 +979,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
     s.lnz = s.unz;
     drop(c);
 
-    return s;
+    s
 }
 
 /// Scalar plus sparse matrix. C = alpha + A
@@ -1023,7 +1024,7 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
     c.i = a.i.clone();
     c.x = a.x.iter().map(|x| x + alpha).collect();
 
-    return c;
+    c
 }
 
 /// Scalar times sparse matrix. C = alpha * A
@@ -1068,7 +1069,7 @@ pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
     c.i = a.i.clone();
     c.x = a.x.iter().map(|x| x * alpha).collect();
 
-    return c;
+    c
 }
 
 /// Print a sparse matrix
@@ -1084,7 +1085,7 @@ pub fn sprs_print(a: &Sprs, brief: bool) {
         n,
         nzmax,
         a.p[n],
-        norm(&a)
+        norm(a)
     );
     for j in 0..n {
         println!(

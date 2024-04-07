@@ -1787,15 +1787,13 @@ fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
 
     let at = transpose(a);
     w[0..s].fill(-1); // clear workspace [0..s-1]
-    for k in 0..n {
+    for (k, &p) in post.iter().enumerate() {
         // find first [j]
-        j = post[k];
-        if w[(first as isize + j) as usize] == -1 {
-            // delta[j]=1 if j is a leaf
-            delta_colcount[j as usize] = 1;
-        } else {
-            delta_colcount[j as usize] = 0;
-        }
+        j = p;
+        delta_colcount[j as usize] = match w[(first as isize + j) as usize] {
+            -1 => 1,
+            _ => 0,
+        };
         while j != -1 && w[(first as isize + j) as usize] == -1 {
             w[(first as isize + j) as usize] = k as isize;
 

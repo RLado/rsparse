@@ -823,7 +823,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
         for p in top..n {
             // for each i in pattern of R(:,k)
             i = w[ws + p]; // R(i,k) is nonzero
-            happly(&v, i as usize, beta[i as usize], &mut x); // apply (V(i),Beta(i)) to x
+            happly(&v, i as usize, beta[i as usize], &mut x[..]); // apply (V(i),Beta(i)) to x
             r.i[rnz] = i as usize; // R(i,k) = x(i)
             r.x[rnz] = x[i as usize];
             rnz += 1;
@@ -838,7 +838,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
             x[v.i[p]] = 0.;
         }
         r.i[rnz] = k; // R(k,k) = norm (x)
-        r.x[rnz] = house(&mut v.x, Some(p1), &mut beta, Some(k), vnz - p1); // [v,beta]=house(x)
+        r.x[rnz] = house(&mut v.x[..], Some(p1), &mut beta[..], Some(k), vnz - p1); // [v,beta]=house(x)
         rnz += 1;
     }
     r.p[n] = rnz as isize; // finalize R
@@ -913,7 +913,7 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         ipvec(m, &s.pinv, &b[..], &mut x[..]); // x(0:m-1) = P*b(0:m-1)
         for k in 0..n {
             // apply Householder refl. to x
-            happly(&n_mat.l, k, n_mat.b[k], &mut x);
+            happly(&n_mat.l, k, n_mat.b[k], &mut x[..]);
         }
         usolve(&n_mat.u, &mut x); // x = R\x
         ipvec(n, &s.q, &x[..], &mut b[..]); // b(0:n-1) = Q*x (permutation)
@@ -926,7 +926,7 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         pvec(m, &s.q, &b[..], &mut x[..]); // x(0:m-1) = Q'*b (permutation)
         utsolve(&n_mat.u, &mut x); // x = R'\x
         for k in (0..m).rev() {
-            happly(&n_mat.l, k, n_mat.b[k], &mut x);
+            happly(&n_mat.l, k, n_mat.b[k], &mut x[..]);
         }
         pvec(n, &s.pinv, &x[..], &mut b[..]); // b (0:n-1) = P'*x
     }
@@ -951,11 +951,11 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
     let c_mat = symperm(a, &s.pinv); // C = spones(triu(A(P,P)))
     s.parent = etree(&c_mat, false); // find e tree of C
     let post = post(n, &s.parent[..]); // postorder the etree
-    let mut c = counts(&c_mat, &s.parent, &post, false); // find column counts of chol(C)
+    let mut c = counts(&c_mat, &s.parent[..], &post[..], false); // find column counts of chol(C)
     drop(post);
     drop(c_mat);
     s.cp = vec![0; n + 1]; // find column pointers for L
-    s.unz = cumsum(&mut s.cp, &mut c, n);
+    s.unz = cumsum(&mut s.cp[..], &mut c[..], n);
     s.lnz = s.unz;
     drop(c);
 
@@ -1106,7 +1106,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
         };
         s.parent = etree(&c, true); // etree of C'*C, where C=A(:,Q)
         pst = post(a.n, &s.parent[..]);
-        s.cp = counts(&c, &s.parent, &pst, true); // col counts chol(C'*C)
+        s.cp = counts(&c, &s.parent[..], &pst[..], true); // col counts chol(C'*C)
         s.pinv = vcount(&c, &s.parent[..], &mut s.m2, &mut s.lnz);
         s.unz = 0;
         for k in 0..a.n {
@@ -1166,7 +1166,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
     for p in 0..a.p[a.n] as usize {
         w[a.i[p]] += 1; // row counts
     }
-    cumsum(&mut c.p, &mut w, a.m); // row pointers
+    cumsum(&mut c.p[..], &mut w[..], a.m); // row pointers
     for j in 0..a.n {
         for p in a.p[j] as usize..a.p[j + 1] as usize {
             q = w[a.i[p]] as usize;
@@ -1779,7 +1779,7 @@ fn cedge(
 
 /// colcount = column counts of LL'=A or LL'=A'A, given parent & post ordering
 ///
-fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<isize> {
+fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
     let m = a.m;
     let n = a.n;
 
@@ -1885,7 +1885,7 @@ fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<is
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
 ///
-fn cumsum(p: &mut Vec<isize>, c: &mut Vec<isize>, n: usize) -> usize {
+fn cumsum(p: &mut [isize], c: &mut [isize], n: usize) -> usize {
     let mut nz = 0;
     for i in 0..n {
         p[i] = nz;
@@ -1904,7 +1904,7 @@ fn dfs(
     j: usize,
     l: &mut Sprs,
     top: usize,
-    xi: &mut Vec<isize>,
+    xi: &mut [isize],
     pstack_i: &usize,
     pinv: &Option<Vec<isize>>,
 ) -> usize {
@@ -2083,7 +2083,7 @@ fn fkeep(a: &mut Sprs, f: &dyn Fn(isize, isize, f64) -> bool) -> isize {
 
 /// apply the ith Householder vector to x
 ///
-fn happly(v: &Sprs, i: usize, beta: f64, x: &mut Vec<f64>) {
+fn happly(v: &Sprs, i: usize, beta: f64, x: &mut [f64]) {
     let mut tau = 0.;
 
     for p in v.p[i]..v.p[i + 1] {
@@ -2101,9 +2101,9 @@ fn happly(v: &Sprs, i: usize, beta: f64, x: &mut Vec<f64>) {
 /// where (I-beta*v*v')*x = s*x.  See Algo 5.1.1, Golub & Van Loan, 3rd ed.
 ///
 fn house(
-    x: &mut Vec<f64>,
+    x: &mut [f64],
     xp: Option<usize>,
-    beta: &mut Vec<f64>,
+    beta: &mut [f64],
     betap: Option<usize>,
     n: usize,
 ) -> f64 {
@@ -2113,7 +2113,7 @@ fn house(
 
     let sigma: f64 = (1..n).map(|i| x[i + xp] * x[i + xp]).sum();
     if sigma != 0. {
-        s = f64::powf(x[xp] * x[xp] + sigma, 0.5); // s = norm (x)
+        s = (x[xp] * x[xp] + sigma).sqrt(); // s = norm (x)
         x[xp] = if x[xp] <= 0. {
             x[xp] - s
         } else {
@@ -2121,7 +2121,7 @@ fn house(
         };
         beta[betap] = (-s * x[xp]).recip();
     } else {
-        s = f64::abs(x[xp]); // s = |x(0)|
+        s = x[xp].abs(); // s = |x(0)|
         beta[betap] = if x[xp] <= 0. { 2. } else { 0. };
         x[xp] = 1.;
     }
@@ -2232,20 +2232,14 @@ fn pvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
 /// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
 /// xi [n...2n-1] used as workspace.
 ///
-fn reach(
-    l: &mut Sprs,
-    b: &Sprs,
-    k: usize,
-    xi: &mut Vec<isize>,
-    pinv: &Option<Vec<isize>>,
-) -> usize {
+fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut [isize], pinv: &Option<Vec<isize>>) -> usize {
     let mut top = l.n;
 
     for p in b.p[k] as usize..b.p[k + 1] as usize {
         if !marked(&l.p[..], b.i[p]) {
             // start a dfs at unmarked node i
             let n = l.n;
-            top = dfs(b.i[p], l, top, xi, &n, pinv);
+            top = dfs(b.i[p], l, top, &mut xi[..], &n, pinv);
         }
     }
     for i in xi.iter().take(l.n).skip(top) {
@@ -2312,7 +2306,7 @@ fn splsolve(
     pinv: &Option<Vec<isize>>,
 ) -> usize {
     let mut jnew;
-    let top = reach(l, b, k, xi, pinv); // xi[top..n-1]=Reach(B(:,k))
+    let top = reach(l, b, k, &mut xi[..], pinv); // xi[top..n-1]=Reach(B(:,k))
 
     for p in top..l.n {
         x[xi[p] as usize] = 0.; // clear x
@@ -2361,7 +2355,7 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<isize>>) -> Sprs {
             w[std::cmp::max(i2, j2)] += 1; // column count of C
         }
     }
-    cumsum(&mut c.p, &mut w, n); // compute column pointers of C
+    cumsum(&mut c.p[..], &mut w[..], n); // compute column pointers of C
     for j in 0..n {
         j2 = pinv.as_ref().map_or(j, |pinv| pinv[j] as usize); // column j of A is column j2 of C
         for p in a.p[j]..a.p[j + 1] {

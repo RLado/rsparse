@@ -565,7 +565,7 @@ fn gaxpy_1() {
     a_sparse.from_vec(&a[..]);
     let x = vec![1., 2., 3.];
     let y = vec![3., 2., 1.];
-    assert_eq!(rsparse::gaxpy(&a_sparse, &x, &y), vec!(9., 3., 55.));
+    assert_eq!(rsparse::gaxpy(&a_sparse, &x[..], &y[..]), vec!(9., 3., 55.));
 }
 
 #[test]
@@ -587,7 +587,7 @@ fn gaxpy_2() {
     let x = vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 0.];
     let y = vec![0., 9., 8., 7., 6., 5., 4., 3., 2., 1.];
     assert_eq!(
-        rsparse::gaxpy(&a_sparse, &x, &y),
+        rsparse::gaxpy(&a_sparse, &x[..], &y[..]),
         vec!(2250., 2279., 2478., 2407., 2316., 2180., 2199., 2098., 2327., 2236.)
     );
 }

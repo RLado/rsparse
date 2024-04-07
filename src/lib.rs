@@ -387,8 +387,8 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 ///     assert_eq!(rsparse::gaxpy(&a_sparse, &x, &y), vec!(9., 3., 55.));
 /// }
 /// ```
-pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
-    let mut r = y.clone();
+pub fn gaxpy(a_mat: &Sprs, x: &[f64], y: &[f64]) -> Vec<f64> {
+    let mut r = y.to_vec();
     for (j, &x_j) in x.iter().enumerate().take(a_mat.n) {
         for p in a_mat.p[j]..a_mat.p[j + 1] {
             let p_u = p as usize;
@@ -541,7 +541,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         }
 
         col = s.q.as_ref().map_or(k, |q| q[k] as usize);
-        top = splsolve(&mut n_mat.l, a, col, &mut xi, &mut x, &n_mat.pinv); // x = L\A(:,col)
+        top = splsolve(&mut n_mat.l, a, col, &mut xi, &mut x[..], &n_mat.pinv); // x = L\A(:,col)
 
         // --- Find pivot ---------------------------------------------------
         ipiv = -1;
@@ -1107,7 +1107,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
         s.parent = etree(&c, true); // etree of C'*C, where C=A(:,Q)
         pst = post(a.n, &s.parent);
         s.cp = counts(&c, &s.parent, &pst, true); // col counts chol(C'*C)
-        s.pinv = vcount(&c, &s.parent, &mut s.m2, &mut s.lnz);
+        s.pinv = vcount(&c, &s.parent[..], &mut s.m2, &mut s.lnz);
         s.unz = 0;
         for k in 0..a.n {
             s.unz += s.cp[k] as usize;
@@ -1377,7 +1377,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         ww[elen + i] = 0; // Ek of node i is empty
         ww[degree + i] = ww[len + i]; // degree of node i
     }
-    mark_v = wclear(0, 0, &mut ww, w, n); // clear w ALERT!!! C implementation passes w (pointer to ww)
+    mark_v = wclear(0, 0, &mut ww[..], w, n); // clear w ALERT!!! C implementation passes w (pointer to ww)
     ww[elen + n] = -2; // n is a dead element
     c.p[n] = -1; // n is a root of assembly tree
     ww[w + n] = 0; // n is a dead element
@@ -1520,7 +1520,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         ww[(elen as isize + k) as usize] = -2; // k is now an element
 
         // --- Find set differences -----------------------------------------
-        mark_v = wclear(mark_v, lemax, &mut ww, w, n); // clear w if necessary
+        mark_v = wclear(mark_v, lemax, &mut ww[..], w, n); // clear w if necessary
         for pk in pk1..pk2 {
             // scan1: find |Le\Lk|
             i = c.i[pk as usize] as isize;
@@ -1608,7 +1608,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         } // scan2 is done
         ww[(degree as isize + k) as usize] = dk; // finalize |Lk|
         lemax = std::cmp::max(lemax, dk);
-        mark_v = wclear(mark_v + lemax, lemax, &mut ww, w, n); // clear w
+        mark_v = wclear(mark_v + lemax, lemax, &mut ww[..], w, n); // clear w
 
         // --- Supernode detection ------------------------------------------
         for pk in pk1..pk2 {
@@ -1729,7 +1729,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
     for i in 0..=n {
         // postorder the assembly tree
         if c.p[i] == -1 {
-            k = tdfs(i as isize, k, &mut ww, head, next, &mut p_v, w); // Note that CSparse passes the pointers of ww
+            k = tdfs(i as isize, k, &mut ww[..], head, next, &mut p_v[..], w); // Note that CSparse passes the pointers of ww
         }
     }
 
@@ -1820,7 +1820,7 @@ fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<is
             w[post[k] as usize] = k as isize; // invert post
         }
         for i in 0..m {
-            k = n; // k = least postordered column in row i
+            k = n; // k = least post-ordered column in row i
             for p in at.p[i]..at.p[i + 1] {
                 k = std::cmp::min(k, w[at.i[p as usize]] as usize);
             }
@@ -1832,7 +1832,7 @@ fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<is
         w[ancestor + i] = i as isize; // each node in its own set
     }
     for k in 0..n {
-        j = post[k]; // j is the kth node in postordered etree
+        j = post[k]; // j is the kth node in post-ordered etree
         if parent[j as usize] != -1 {
             delta_colcount[parent[j as usize] as usize] -= 1; // j is not a root
         }
@@ -1924,8 +1924,8 @@ fn dfs(
         } else {
             jnew = j as isize;
         }
-        if !marked(&l.p, j) {
-            mark(&mut l.p, j); // mark node j as visited
+        if !marked(&l.p[..], j) {
+            mark(&mut l.p[..], j); // mark node j as visited
             if jnew < 0 {
                 xi[pstack_i + head as usize] = 0;
             } else {
@@ -1941,7 +1941,7 @@ fn dfs(
         for p in xi[pstack_i + head as usize]..p2 {
             // examine all neighbors of j
             i = l.i[p as usize]; // consider neighbor node i
-            if marked(&l.p, i) {
+            if marked(&l.p[..], i) {
                 continue; // skip visited node i
             }
             xi[pstack_i + head as usize] = p; // pause depth-first search of node j
@@ -1998,6 +1998,7 @@ fn ereach(
             // increment statement
             i = parent[i as usize];
         }
+        //TODO
         while len > 0 {
             // push path onto stack
             top -= 1;
@@ -2213,7 +2214,7 @@ fn post(n: usize, parent: &Vec<isize>) -> Vec<isize> {
         if *par != -1 {
             continue; // skip j if it is not a root
         }
-        k = tdfs(j as isize, k, &mut w, head, next, &mut post, stack);
+        k = tdfs(j as isize, k, &mut w[..], head, next, &mut post[..], stack);
     }
 
     post
@@ -2243,14 +2244,14 @@ fn reach(
     let mut top = l.n;
 
     for p in b.p[k] as usize..b.p[k + 1] as usize {
-        if !marked(&l.p, b.i[p]) {
+        if !marked(&l.p[..], b.i[p]) {
             // start a dfs at unmarked node i
             let n = l.n;
             top = dfs(b.i[p], l, top, xi, &n, pinv);
         }
     }
     for i in xi.iter().take(l.n).skip(top) {
-        mark(&mut l.p, *i as usize); // restore L
+        mark(&mut l.p[..], *i as usize); // restore L
     }
 
     top
@@ -2309,7 +2310,7 @@ fn splsolve(
     b: &Sprs,
     k: usize,
     xi: &mut Vec<isize>,
-    x: &mut Vec<f64>,
+    x: &mut [f64],
     pinv: &Option<Vec<isize>>,
 ) -> usize {
     let mut jnew;
@@ -2386,10 +2387,10 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<isize>>) -> Sprs {
 fn tdfs(
     j: isize,
     k: isize,
-    ww: &mut Vec<isize>,
+    ww: &mut [isize],
     head: usize,
     next: usize,
-    post: &mut Vec<isize>,
+    post: &mut [isize],
     stack: usize,
 ) -> isize {
     let mut i;
@@ -2405,7 +2406,7 @@ fn tdfs(
         match i {
             -1 => {
                 top -= 1; // p has no unordered children left
-                post[k as usize] = p; // node p is the kth postordered node
+                post[k as usize] = p; // node p is the kth post-ordered node
                 k += 1;
             }
             _ => {
@@ -2421,7 +2422,7 @@ fn tdfs(
 
 /// compute vnz, Pinv, leftmost, m2 from A and parent
 ///
-fn vcount(a: &Sprs, parent: &Vec<isize>, m2: &mut usize, vnz: &mut usize) -> Option<Vec<isize>> {
+fn vcount(a: &Sprs, parent: &[isize], m2: &mut usize, vnz: &mut usize) -> Option<Vec<isize>> {
     let n = a.n;
     let m = a.m;
 
@@ -2500,7 +2501,7 @@ fn vcount(a: &Sprs, parent: &Vec<isize>, m2: &mut usize, vnz: &mut usize) -> Opt
 
 /// clears W
 ///
-fn wclear(mark_v: isize, lemax: isize, ww: &mut Vec<isize>, w: usize, n: usize) -> isize {
+fn wclear(mark_v: isize, lemax: isize, ww: &mut [isize], w: usize, n: usize) -> isize {
     let mut mark = mark_v;
     if mark < 2 || (mark + lemax < 0) {
         for k in 0..n {
@@ -2531,11 +2532,11 @@ fn unflip(i: isize) -> isize {
 }
 
 #[inline]
-fn marked(ap: &Vec<isize>, j: usize) -> bool {
+fn marked(ap: &[isize], j: usize) -> bool {
     ap[j] < 0
 }
 
 #[inline]
-fn mark(ap: &mut Vec<isize>, j: usize) {
+fn mark(ap: &mut [isize], j: usize) {
     ap[j] = flip(ap[j])
 }

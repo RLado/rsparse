@@ -2121,7 +2121,7 @@ fn house(
             -sigma / (x[xp] + s)
         };
         beta[betap] = (-s * x[xp]).recip();
-
+        
     } else {
         s = f64::abs(x[xp]); // s = |x(0)|
         beta[betap] = if x[xp] <= 0. { 2. } else { 0. };
@@ -2169,7 +2169,7 @@ fn permute(a: &Sprs, pinv: &Option<Vec<isize>>, q: &Option<Vec<isize>>) -> Sprs 
     }
     c.p[a.n] = nz as isize;
 
-    return c;
+    c
 }
 
 /// Pinv = P', or P = Pinv'
@@ -2186,7 +2186,7 @@ fn pinvert(p: &Option<Vec<isize>>, n: usize) -> Option<Vec<isize>> {
         pinv[p.as_ref().unwrap()[k] as usize] = k as isize; // invert the permutation
     }
 
-    return Some(pinv);
+    Some(pinv)
 }
 
 /// post order a forest
@@ -2210,24 +2210,24 @@ fn post(n: usize, parent: &Vec<isize>) -> Vec<isize> {
         w[next + j] = w[(head as isize + parent[j]) as usize]; // add j to list of its parent
         w[(head as isize + parent[j]) as usize] = j as isize;
     }
-    for j in 0..n {
-        if parent[j] != -1 {
+    for (j, par) in parent.iter().enumerate().take(n) {
+        if *par != -1 {
             continue; // skip j if it is not a root
         }
         k = tdfs(j as isize, k, &mut w, head, next, &mut post, stack);
     }
-    return post;
+
+    post
 }
 
 /// x = b(P), for dense vectors x and b; P=None denotes identity
 ///
 fn pvec(n: usize, p: &Option<Vec<isize>>, b: &Vec<f64>, x: &mut Vec<f64>) {
-    for k in 0..n {
-        if p.is_some() {
-            x[k] = b[p.as_ref().unwrap()[k] as usize];
-        } else {
-            x[k] = b[k];
-        }
+    for (k, x_k) in x.iter_mut().enumerate().take(n) {
+        *x_k = match p {
+            Some(p) => b[p[k] as usize],
+            None => b[k],
+        };
     }
 }
 
@@ -2247,14 +2247,14 @@ fn reach(
         if !marked(&l.p, b.i[p]) {
             // start a dfs at unmarked node i
             let n = l.n;
-            top = dfs(b.i[p], l, top, xi, &n, &pinv);
+            top = dfs(b.i[p], l, top, xi, &n, pinv);
         }
     }
-    for p in top..l.n {
-        mark(&mut l.p, xi[p] as usize); // restore L
+    for i in xi.iter().take(l.n).skip(top) {
+        mark(&mut l.p, *i as usize); // restore L
     }
 
-    return top;
+    top
 }
 
 /// x = x + beta * A(:,j), where x is a dense vector and A(:,j) is sparse
@@ -2277,13 +2277,13 @@ fn scatter(
             w[i] = mark as isize; // i is new entry in column j
             c.i[nzo] = i; // add i to pattern of C(:,j)
             nzo += 1;
-            x[i] = beta * a.x[p as usize]; // x(i) = beta*A(i,j)
+            x[i] = beta * a.x[p]; // x(i) = beta*A(i,j)
         } else {
-            x[i] += beta * a.x[p as usize]; // i exists in C(:,j) already
+            x[i] += beta * a.x[p]; // i exists in C(:,j) already
         }
     }
 
-    return nzo;
+    nzo
 }
 
 /// beta * A(:,j), where A(:,j) is sparse. For QR decomposition
@@ -2300,7 +2300,7 @@ fn scatter_no_x(j: usize, w: &mut Vec<isize>, mark: usize, c: &mut Sprs, nz: usi
         }
     }
 
-    return nzo;
+    nzo
 }
 
 /// Solve Lx=b(:,k), leaving pattern in xi[top..n-1], values scattered in x.

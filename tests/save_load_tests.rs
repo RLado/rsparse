@@ -1,6 +1,3 @@
-use rsparse;
-
-
 #[test]
 fn save_load_1() {
     // path to save and load the matrix
@@ -23,11 +20,11 @@ fn save_load_1() {
     l_sparse.from_vec(&l[..]);
 
     // save the `Sprs` matrix
-    l_sparse.save(&path).unwrap();
+    l_sparse.save(path).unwrap();
 
     // load the same matrix in a new variable
     let mut l_sparse_2 = rsparse::data::Sprs::new();
-    l_sparse_2.load(&path).unwrap();
+    l_sparse_2.load(path).unwrap();
 
     // check if it was loaded correctly
     assert_eq!(l_sparse.nzmax, l_sparse_2.nzmax);
@@ -47,11 +44,11 @@ fn save_load_2() {
     let l_sparse = rsparse::data::Sprs::new();
 
     // save the `Sprs` matrix
-    l_sparse.save(&path).unwrap();
+    l_sparse.save(path).unwrap();
 
     // load the same matrix in a new variable
     let mut l_sparse_2 = rsparse::data::Sprs::new();
-    l_sparse_2.load(&path).unwrap();
+    l_sparse_2.load(path).unwrap();
 
     // check if it was loaded correctly
     assert_eq!(l_sparse.nzmax, l_sparse_2.nzmax);

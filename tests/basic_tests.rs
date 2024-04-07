@@ -1,4 +1,3 @@
-use rsparse;
 mod utils;
 
 #[test]
@@ -6,7 +5,7 @@ fn eye_1() {
     let a = rsparse::data::Sprs::eye(3);
     assert_eq!(
         a.to_dense(),
-        vec![vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]]
+        [vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]]
     );
 }
 
@@ -14,7 +13,7 @@ fn eye_1() {
 fn eye_2() {
     let a = rsparse::data::Sprs::eye(11);
 
-    let r = vec![
+    let r = [
         vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         vec![0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         vec![0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -33,7 +32,7 @@ fn eye_2() {
 
 #[test]
 fn from_vec_1() {
-    let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
+    let a = [vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
     // Checking data
@@ -59,7 +58,7 @@ fn from_trpl_1() {
 
     assert_eq!(
         b.to_dense(),
-        vec![vec![2., 0., 0.], vec![0., 3., 0.], vec![0., 0., 4.]]
+        [vec![2., 0., 0.], vec![0., 3., 0.], vec![0., 0., 4.]]
     );
 }
 
@@ -77,7 +76,7 @@ fn from_trpl_2() {
 
     assert_eq!(
         b.to_dense(),
-        vec![
+        [
             vec![2., 0., 0., 0.],
             vec![5., 3., 0., 0.],
             vec![0., 0., 4., 0.]
@@ -99,7 +98,7 @@ fn from_trpl_3() {
 
     assert_eq!(
         b.to_dense(),
-        vec![
+        [
             vec![2., 0., 0., 0.],
             vec![5., 3., 0., 0.],
             vec![0., 0., 4., 7.]
@@ -122,7 +121,7 @@ fn from_trpl_4() {
 
     assert_eq!(
         b.to_dense(),
-        vec![
+        [
             vec![2., 0., 0., 0.],
             vec![5., 3., 0., 0.],
             vec![0., 0., 4., 13.]
@@ -147,7 +146,7 @@ fn from_trpl_5() {
 
     assert_eq!(
         b.to_dense(),
-        vec![
+        [
             vec![2., 0., 0., 0.],
             vec![5., 3., 0., 0.],
             vec![0., 0., 4., 13.]
@@ -178,7 +177,7 @@ fn to_sprs_1() {
     assert_eq!(b.to_dense(), c.to_dense());
     assert_eq!(
         b.to_dense(),
-        vec![vec![2., 0., 0.], vec![0., 3., 0.], vec![0., 0., 4.]]
+        [vec![2., 0., 0.], vec![0., 3., 0.], vec![0., 0., 4.]]
     );
 }
 
@@ -481,7 +480,7 @@ fn to_dense_3() {
 
 #[test]
 fn transpose_1() {
-    let a = vec![
+    let a = [
         vec![2.1615, 2.0044, 2.1312, 0.8217, 2.2074],
         vec![2.2828, 1.9089, 1.9295, 0.9412, 2.0017],
         vec![2.2156, 1.8776, 1.9473, 1.0190, 1.8352],
@@ -560,11 +559,11 @@ fn transpose_4() {
 
 #[test]
 fn gaxpy_1() {
-    let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
+    let a = [vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
-    let x = vec![1., 2., 3.];
-    let y = vec![3., 2., 1.];
+    let x = [1., 2., 3.];
+    let y = [3., 2., 1.];
     assert_eq!(rsparse::gaxpy(&a_sparse, &x[..], &y[..]), vec!(9., 3., 55.));
 }
 
@@ -584,8 +583,8 @@ fn gaxpy_2() {
     ];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
-    let x = vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 0.];
-    let y = vec![0., 9., 8., 7., 6., 5., 4., 3., 2., 1.];
+    let x = [1., 2., 3., 4., 5., 6., 7., 8., 9., 0.];
+    let y = [0., 9., 8., 7., 6., 5., 4., 3., 2., 1.];
     assert_eq!(
         rsparse::gaxpy(&a_sparse, &x[..], &y[..]),
         vec!(2250., 2279., 2478., 2407., 2316., 2180., 2199., 2098., 2327., 2236.)
@@ -594,11 +593,11 @@ fn gaxpy_2() {
 
 #[test]
 fn multiply_1() {
-    let a = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
+    let a = [vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 9., 9.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 1., 9.]];
+    let b = [vec![0., 0., 2.], vec![1., 0., 0.], vec![9., 1., 9.]];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b[..]);
 
@@ -612,11 +611,11 @@ fn multiply_1() {
 
 #[test]
 fn multiply_2() {
-    let a = vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]];
+    let a = [vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
+    let b = [vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b[..]);
 
@@ -632,11 +631,11 @@ fn multiply_2() {
 
 #[test]
 fn multiply_3() {
-    let a = vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]];
+    let a = [vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]];
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
+    let b = [vec![1., 0., 0.], vec![0., 1., 0.], vec![0., 0., 1.]];
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b[..]);
 
@@ -644,20 +643,20 @@ fn multiply_3() {
 
     assert_eq!(
         c.to_dense(),
-        vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
+        [vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
     );
 
     let d = rsparse::multiply(&b_sparse, &a_sparse);
 
     assert_eq!(
         d.to_dense(),
-        vec![vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
+        [vec![1., 1., 3.], vec![5., 0., 0.], vec![2., 2., 0.]]
     );
 }
 
 #[test]
 fn multiply_4() {
-    let a = vec![
+    let a = [
         vec![0.951851, 0.980789, 0.538168, 0.597793, 0.729354],
         vec![0.427680, 0.511328, 0.794301, 0.969392, 0.702270],
         vec![0.294124, 0.453990, 0.932289, 0.842932, 0.803577],
@@ -667,7 +666,7 @@ fn multiply_4() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![5.6488e-01, 8.4342e-01, 7.9746e-01, 1.7830e-01, 5.1775e-01],
         vec![4.0667e-01, 1.2647e-01, 1.8642e-01, 1.1316e-01, 8.6533e-01],
         vec![9.9557e-01, 8.3827e-01, 7.3728e-01, 8.8159e-01, 4.7664e-01],
@@ -1410,7 +1409,7 @@ fn multiply_5() {
 
 #[test]
 fn multiply_6() {
-    let a = vec![
+    let a = [
         vec![0.0, 0.0, 0.0, 0.0, 0.0],
         vec![0.0, 0.0, 0.0, 0.0, 0.0],
         vec![0.0, 0.0, 0.0, -1.0, 0.0],
@@ -12557,7 +12556,7 @@ fn multiply_7() {
 
 #[test]
 fn add_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -12567,7 +12566,7 @@ fn add_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12618,7 +12617,7 @@ fn add_1() {
 
 #[test]
 fn add_2() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., -3., 9., 3.],
@@ -12628,7 +12627,7 @@ fn add_2() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12638,7 +12637,7 @@ fn add_2() {
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b[..]);
 
-    let r = vec![
+    let r = [
         vec![10., 10., 10., 10., 3.],
         vec![7., 13., 12., 13., 12.],
         vec![4., 9., 5., 13., 4.],
@@ -12685,7 +12684,7 @@ fn add_2() {
 
 #[test]
 fn scpmat_1() {
-    let a = vec![
+    let a = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12695,7 +12694,7 @@ fn scpmat_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let r = vec![
+    let r = [
         vec![10., 10., 8., 8., 4.],
         vec![6., 11., 9., 7., 11.],
         vec![4., 5., 10., 6., 3.],
@@ -12717,7 +12716,7 @@ fn scpmat_1() {
 
 #[test]
 fn scxmat_1() {
-    let a = vec![
+    let a = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12727,7 +12726,7 @@ fn scxmat_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let r = vec![
+    let r = [
         vec![16., 16., 12., 12., 4.],
         vec![8., 18., 14., 10., 18.],
         vec![4., 6., 16., 8., 2.],
@@ -12749,7 +12748,7 @@ fn scxmat_1() {
 
 #[test]
 fn add_op_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -12759,7 +12758,7 @@ fn add_op_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12769,7 +12768,7 @@ fn add_op_1() {
     let mut b_sparse = rsparse::data::Sprs::new();
     b_sparse.from_vec(&b[..]);
 
-    let r = vec![
+    let r = [
         vec![10., 10., 10., 10., 3.],
         vec![7., 13., 12., 13., 12.],
         vec![4., 9., 11., 13., 4.],
@@ -12798,7 +12797,7 @@ fn add_op_1() {
 
 #[test]
 fn sub_op_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -12808,7 +12807,7 @@ fn sub_op_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12836,7 +12835,7 @@ fn sub_op_1() {
 
 #[test]
 fn mul_op_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -12846,7 +12845,7 @@ fn mul_op_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -12874,7 +12873,7 @@ fn mul_op_1() {
 
 #[test]
 fn mul_op_2() {
-    let a = vec![
+    let a = [
         vec![
             100.0, 0.0, 0.0, 0.0, 0.0, 0.131486, 0.0, 0.0, 0.0, 0.0, 0.0, 0.244797, 0.0, 0.0,
             0.130065, 0.0, 0.0, 0.0, 0.377212, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -35110,7 +35109,7 @@ fn mul_op_3() {
 
 #[test]
 fn ops_order_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -35120,7 +35119,7 @@ fn ops_order_1() {
     let mut a_sparse = rsparse::data::Sprs::new();
     a_sparse.from_vec(&a[..]);
 
-    let b = vec![
+    let b = [
         vec![8., 8., 6., 6., 2.],
         vec![4., 9., 7., 5., 9.],
         vec![2., 3., 8., 4., 1.],
@@ -35174,7 +35173,7 @@ fn ops_order_1() {
 
 #[test]
 fn ops_order_2() {
-    let a = vec![
+    let a = [
         vec![
             0.992473, 0.319436, 0.584202, 0.830577, 0.475800, 0.481238, 0.428161, 0.957305,
             0.415050, 0.653978, 0.238545, 0.282478, 0.280944, 0.707838, 0.293974, 0.507221,
@@ -35428,7 +35427,7 @@ fn ops_order_2() {
 
 #[test]
 fn ops_order_3() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -35492,7 +35491,7 @@ fn ops_order_3() {
 
 #[test]
 fn scal_ops_1() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -35538,7 +35537,7 @@ fn scal_ops_1() {
 
 #[test]
 fn scal_ops_2() {
-    let a = vec![
+    let a = [
         vec![2., 2., 4., 4., 1.],
         vec![3., 4., 5., 8., 3.],
         vec![2., 6., 3., 9., 3.],
@@ -35584,7 +35583,7 @@ fn scal_ops_2() {
 
 #[test]
 fn norm_1() {
-    let a = vec![
+    let a = [
         vec![0.947046, 0.107385, 0.414713, 0.829759, 0.184515, 0.915179],
         vec![0.731729, 0.256865, 0.57665, 0.808786, 0.975115, 0.853119],
         vec![0.241559, 0.76349, 0.561508, 0.726358, 0.418349, 0.089947],

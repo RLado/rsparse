@@ -10,7 +10,7 @@ use std::io::{BufRead, BufReader};
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
 ///
-fn cumsum(p: &mut Vec<isize>, c: &mut Vec<isize>, n: usize) -> usize {
+fn cumsum(p: &mut [isize], c: &mut [isize], n: usize) -> usize {
     let mut nz = 0;
     for (p_i, c_i) in p.iter_mut().zip(c.iter_mut()).take(n) {
         *p_i = nz;
@@ -89,7 +89,7 @@ impl Sprs {
     ///
     pub fn new_from_vec(t: &Vec<Vec<f64>>) -> Sprs {
         let mut s = Sprs::new();
-        s.from_vec(t);
+        s.from_vec(&t[..]);
 
         s
     }
@@ -123,7 +123,7 @@ impl Sprs {
     /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the
     /// current object
     ///
-    pub fn from_vec(&mut self, a: &Vec<Vec<f64>>) {
+    pub fn from_vec(&mut self, a: &[Vec<f64>]) {
         let r = a.len(); // num rows
         let c = a[0].len(); // num columns
         let mut idxptr = 0;
@@ -195,7 +195,7 @@ impl Sprs {
         for k in 0..t.p.len() {
             w[t.p[k] as usize] += 1; // column counts
         }
-        cumsum(&mut self.p, &mut w, self.n); // column pointers
+        cumsum(&mut self.p[..], &mut w[..], self.n); // column pointers
         let mut p;
         for k in 0..t.p.len() {
             p = w[t.p[k] as usize] as usize;
@@ -701,7 +701,7 @@ impl Trpl {
         for k in 0..self.p.len() {
             w[self.p[k] as usize] += 1; // column counts
         }
-        cumsum(&mut s.p, &mut w, s.n); // column pointers
+        cumsum(&mut s.p[..], &mut w[..], s.n); // column pointers
         let mut p;
         for k in 0..self.p.len() {
             p = w[self.p[k] as usize] as usize;

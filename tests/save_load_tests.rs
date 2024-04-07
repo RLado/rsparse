@@ -20,7 +20,7 @@ fn save_load_1() {
         vec![0.1360,  0.9532, -0.1212,  -0.1943,   0.4311,   0.1069,   0.3717,   0.7176,  -0.6053,   1.0000]
     ];
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.from_vec(&l);
+    l_sparse.from_vec(&l[..]);
 
     // save the `Sprs` matrix
     l_sparse.save(&path).unwrap();

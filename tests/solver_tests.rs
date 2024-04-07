@@ -17,7 +17,7 @@ fn lsolve_1(){
         vec![0.1360,  0.9532, -0.1212,  -0.1943,   0.4311,   0.1069,   0.3717,   0.7176,  -0.6053,   1.0000]
     ];
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.from_vec(&l);
+    l_sparse.from_vec(&l[..]);
 
     let mut b = vec![
         0.8568,
@@ -62,7 +62,7 @@ fn ltsolve_1(){
         vec![0.2423, 0.2332, -0.8355, 0.7522, -0.3700, 0.1985, 1.0000]
     ];
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.from_vec(&l);
+    l_sparse.from_vec(&l[..]);
 
     let mut b = vec![
         0.444841,
@@ -91,7 +91,7 @@ fn ltsolve_1(){
 
 #[test]
 fn usolve_1(){
-    let u =vec![    
+    let u =vec![
         vec![0.7824, 0.4055, 0.0827, 0.9534, 0.9713, 0.1418, 0.0781],
         vec![0.0, 0.7766, 0.2981, 0.2307, -0.3172, 0.6819, 0.5979],
         vec![0.0, 0.0, 0.2986, -0.5576, 0.5928, -0.2759, -0.1672],
@@ -101,7 +101,7 @@ fn usolve_1(){
         vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.4574]
     ];
     let mut u_sparse = rsparse::data::Sprs::new();
-    u_sparse.from_vec(&u);
+    u_sparse.from_vec(&u[..]);
 
     let mut b = vec![
         0.189772,
@@ -130,7 +130,7 @@ fn usolve_1(){
 
 #[test]
 fn utsolve_1(){
-    let u =vec![    
+    let u =vec![
         vec![0.9842, 0.1720, 0.9948, 0.2766, 0.4560, 0.1462, 0.8124],
         vec![0.0000, 0.6894, 0.1043, 0.4486, 0.5217, 0.7157, 0.4132],
         vec![0.0000, 0.0000, -0.5500, -0.2340, 0.0822, 0.2176, -0.1996],
@@ -140,7 +140,7 @@ fn utsolve_1(){
         vec![0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, -0.7740]
     ];
     let mut u_sparse = rsparse::data::Sprs::new();
-    u_sparse.from_vec(&u);
+    u_sparse.from_vec(&u[..]);
 
     let mut b = vec![
         0.444841,
@@ -182,7 +182,7 @@ fn lusol_1(){
         vec![0.1360,  0.9532, -0.1212,  -0.1943,   0.4311,   0.1069,   0.3717,   0.7176,  -0.6053,   1.0000]
     ];
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.from_vec(&l);
+    l_sparse.from_vec(&l[..]);
 
     let mut b = vec![
         0.8568,
@@ -228,7 +228,7 @@ fn lusol_2(){
         vec![9.3807e-01, 7.5985e-02, 7.8758e-01, 3.6881e-01, 4.4553e-01, 5.5005e-02, 3.3908e-01, 3.4573e-01],
     ];
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.from_vec(&l);
+    l_sparse.from_vec(&l[..]);
 
     let mut b = vec![
         0.4377,
@@ -260,7 +260,7 @@ fn lusol_2(){
 #[test]
 fn lusol_3(){
     let mut l_sparse = rsparse::data::Sprs::new();
-    l_sparse.load("./tests/assets/lusol_3.sprs").unwrap();    
+    l_sparse.load("./tests/assets/lusol_3.sprs").unwrap();
 
     let mut b = vec![
         0.46,
@@ -451,7 +451,7 @@ fn lusol_4(){
 
 #[test]
 fn lusol_5(){
-    let u =vec![    
+    let u =vec![
         vec![0.7824, 0.4055, 0.0827, 0.9534, 0.9713, 0.1418, 0.0781],
         vec![0.0, 0.7766, 0.2981, 0.2307, -0.3172, 0.6819, 0.5979],
         vec![0.0, 0.0, 0.2986, -0.5576, 0.5928, -0.2759, -0.1672],
@@ -461,7 +461,7 @@ fn lusol_5(){
         vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.4574]
     ];
     let mut u_sparse = rsparse::data::Sprs::new();
-    u_sparse.from_vec(&u);
+    u_sparse.from_vec(&u[..]);
 
     let mut b = vec![
         0.189772,
@@ -536,7 +536,7 @@ fn cholsol_1(){
         0.0396,
         0.0280
     ];
-    
+
     assert_ne!(&b, &x);
 
     rsparse::cholsol(&mut c_sparse, &mut b, 0);
@@ -568,7 +568,7 @@ fn cholsol_2(){
 fn cholsol_3(){
     let c = vec![vec![5.0, 0.0, 0.0, 0.0, 0.0],vec![0.0, 5.0, 0.0, 0.0, 0.017856],vec![0.0, 0.0, 5.0, 0.0, 0.0],vec![0.0, 0.0, 0.0, 5.0, 0.479746],vec![0.0, 0.017856, 0.0, 0.479746, 5.0]];
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.2543,
@@ -597,7 +597,7 @@ fn cholsol_3(){
 fn cholsol_4(){
     let c = vec![vec![5.196595, 0.540956, 0.686622, 0.263619, 0.460242],vec![0.540956, 5.585264, 0.651726, 0.723996, 0.377615],vec![0.686622, 0.651726, 5.380446, 0.673494, 0.043878],vec![0.263619, 0.723996, 0.673494, 5.934011, 0.233514],vec![0.460242, 0.377615, 0.043878, 0.233514, 5.162182]];
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.2543,
@@ -654,7 +654,7 @@ fn cholsol_6(){
         vec![0.2423, 0.2332, -0.8355, 0.7522, -0.3700, 0.1985, 7.0000]
     ]; // non def. pos. (Should crash)
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.2543,
@@ -681,7 +681,7 @@ fn cholsol_7(){
     let b_static = b.clone();
 
     rsparse::cholsol(&c_sparse, &mut b, 0);
-    
+
     utils::assert_eq_f_vec(&rsparse::gaxpy(&c_sparse, &b, &vec![0.; b.len()]), &b_static, 1e-1); // Close but not right (c_sparse is not symmetric)
 }
 
@@ -689,7 +689,7 @@ fn cholsol_7(){
 fn qrsol_1(){
     let c = vec![vec![5.196595, 0.540956, 0.686622, 0.263619, 0.460242],vec![0.540956, 5.585264, 0.651726, 0.723996, 0.377615],vec![0.686622, 0.651726, 5.380446, 0.673494, 0.043878],vec![0.263619, 0.723996, 0.673494, 5.934011, 0.233514],vec![0.460242, 0.377615, 0.043878, 1.233514, 5.162182]]; // non def. pos.
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.2543,
@@ -725,7 +725,7 @@ fn qrsol_2(){
         vec![9.3807e-01, 7.5985e-02, 7.8758e-01, 3.6881e-01, 4.4553e-01, 5.5005e-02, 3.3908e-01, 3.4573e-01],
     ];
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.4377,
@@ -810,7 +810,7 @@ fn qrsol_5(){
 
 #[test]
 fn qrsol_6(){
-    let c = vec![    
+    let c = vec![
         vec![0.7824, 0.4055, 0.0827, 0.9534, 0.9713, 0.1418, 0.0781],
         vec![0.0, 0.7766, 0.2981, 0.2307, -0.3172, 0.6819, 0.5979],
         vec![0.0, 0.0, 0.2986, -0.5576, 0.5928, -0.2759, -0.1672],
@@ -820,7 +820,7 @@ fn qrsol_6(){
         vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.4574]
     ];
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.189772,
@@ -853,7 +853,7 @@ fn qrsol_7(){
         vec![0.450542, 0.106653, 0.431414, 0.853031, 0.417267, 0.780252, 0.234780, 0.547009, 0.929386, 0.644318, 0.207742],vec![0.083821, 0.961898, 0.910648, 0.622055, 0.049654, 0.389739, 0.353159, 0.296321, 0.775713, 0.378609, 0.301246],vec![0.228977, 0.004634, 0.181847, 0.350952, 0.902716, 0.241691, 0.821194, 0.744693, 0.486792, 0.811580, 0.470923],vec![0.913337, 0.774910, 0.263803, 0.513250, 0.944787, 0.403912, 0.015403, 0.188955, 0.435859, 0.532826, 0.230488],vec![0.152378, 0.817303, 0.145539, 0.401808, 0.490864, 0.096455, 0.043024, 0.686775, 0.446784, 0.350727, 0.844309],vec![0.825817, 0.868695, 0.136069, 0.075967, 0.489253, 0.131973, 0.168990, 0.183511, 0.306349, 0.939002, 0.194764],vec![0.538342, 0.084436, 0.869292, 0.239916, 0.337719, 0.942051, 0.649115, 0.368485, 0.508509, 0.875943, 0.225922],vec![0.996135, 0.399783, 0.579705, 0.123319, 0.900054, 0.956135, 0.731722, 0.625619, 0.510772, 0.550156, 0.170708],vec![0.078176, 0.259870, 0.549860, 0.183908, 0.369247, 0.575209, 0.647746, 0.780227, 0.817628, 0.622475, 0.227664],vec![0.442678, 0.800068, 0.144955, 0.239953, 0.111203, 0.059780, 0.450924, 0.081126, 0.794831, 0.587045, 0.435699]
     ];
     let mut c_sparse = rsparse::data::Sprs::new();
-    c_sparse.from_vec(&c);
+    c_sparse.from_vec(&c[..]);
 
     let mut b = vec![
         0.311102286650413,

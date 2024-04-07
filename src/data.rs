@@ -12,13 +12,14 @@ use std::io::{BufRead, BufReader};
 ///
 fn cumsum(p: &mut Vec<isize>, c: &mut Vec<isize>, n: usize) -> usize {
     let mut nz = 0;
-    for i in 0..n {
-        p[i] = nz;
-        nz += c[i];
-        c[i] = p[i];
+    for (p_i, c_i) in p.iter_mut().zip(c.iter_mut()).take(n) {
+        *p_i = nz;
+        nz += *c_i;
+        *c_i = *p_i;
     }
     p[n] = nz;
-    return nz as usize;
+
+    nz as usize
 }
 
 // --- Data structures ---------------------------------------------------------
@@ -37,7 +38,7 @@ pub struct Sprs {
     pub n: usize,
     /// column pointers (size n+1) (Marks the index on which data starts in each column)
     pub p: Vec<isize>,
-    /// row indicies, size nzmax
+    /// row indices, size nzmax
     pub i: Vec<usize>,
     /// numericals values, size nzmax
     pub x: Vec<f64>,
@@ -47,29 +48,27 @@ impl Sprs {
     /// Initializes to an empty matrix
     ///
     pub fn new() -> Sprs {
-        let s = Sprs {
+        Sprs {
             nzmax: 0,
             m: 0,
             n: 0,
             p: Vec::new(),
             i: Vec::new(),
             x: Vec::new(),
-        };
-        return s;
+        }
     }
 
     /// Allocates a zero filled matrix
     ///
     pub fn zeros(m: usize, n: usize, nzmax: usize) -> Sprs {
-        let s = Sprs {
-            nzmax: nzmax,
-            m: m,
-            n: n,
+        Sprs {
+            nzmax,
+            m,
+            n,
             p: vec![0; n + 1],
             i: vec![0; nzmax],
             x: vec![0.; nzmax],
-        };
-        return s;
+        }
     }
 
     /// Allocates an `n`x`n` identity matrix
@@ -82,7 +81,8 @@ impl Sprs {
             s.x[i] = 1.;
         }
         s.p[n] = n as isize;
-        return s;
+
+        s
     }
 
     /// Allocates a matrix from a 2D array of Vec
@@ -90,7 +90,8 @@ impl Sprs {
     pub fn new_from_vec(t: &Vec<Vec<f64>>) -> Sprs {
         let mut s = Sprs::new();
         s.from_vec(t);
-        return s;
+
+        s
     }
 
     /// Allocates a matrix from a `Trpl` object
@@ -98,7 +99,8 @@ impl Sprs {
     pub fn new_from_trpl(t: &Trpl) -> Sprs {
         let mut s = Sprs::new();
         s.from_trpl(t);
-        return s;
+
+        s
     }
 
     /// Get element from (row, column) position
@@ -114,7 +116,8 @@ impl Sprs {
                 }
             }
         }
-        return None;
+
+        None
     }
 
     /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the
@@ -134,9 +137,10 @@ impl Sprs {
 
         for i in 0..c {
             self.p.push(idxptr);
-            for j in 0..r {
-                if a[j][i] != 0.0 {
-                    self.x.push(a[j][i]);
+            for (j, aj) in a.iter().enumerate().take(r) {
+                let elem = aj[i];
+                if elem != 0.0 {
+                    self.x.push(elem);
                     self.i.push(j);
                     idxptr += 1
                 }
@@ -146,7 +150,7 @@ impl Sprs {
         self.trim();
     }
 
-    /// Convert from triplet form to a Sprs matrix, overwritting the current
+    /// Convert from triplet form to a Sprs matrix, overwriting the current
     /// object.
     ///
     /// Does not add duplicate values. The last value assigned to a position is
@@ -238,7 +242,8 @@ impl Sprs {
                 r[self.i[i as usize]][j] = self.x[i as usize];
             }
         }
-        return r;
+
+        r
     }
 
     /// Save a sparse matrix
@@ -253,7 +258,8 @@ impl Sprs {
         writeln!(f, "p: {:?}", self.p)?;
         writeln!(f, "i: {:?}", self.i)?;
         writeln!(f, "x: {:?}", self.x)?;
-        return Ok(());
+
+        Ok(())
     }
 
     /// Load a sparse matrix
@@ -268,7 +274,7 @@ impl Sprs {
         for line in reader.lines() {
             let line_read = line?;
             if line_read.contains("nzmax:") {
-                self.nzmax = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                self.nzmax = (line_read.split(':').collect::<Vec<&str>>()[1].replace(' ', ""))
                     .parse::<usize>()?;
                 if self.nzmax == 0 {
                     // If the saved matrix is empty, just write it as such
@@ -282,7 +288,7 @@ impl Sprs {
                     return Ok(());
                 }
             } else if line_read.contains("m:") {
-                self.m = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                self.m = (line_read.split(':').collect::<Vec<&str>>()[1].replace(' ', ""))
                     .parse::<usize>()?;
                 if self.m == 0 {
                     // If the saved matrix is empty, just write it as such
@@ -296,7 +302,7 @@ impl Sprs {
                     return Ok(());
                 }
             } else if line_read.contains("n:") {
-                self.n = (line_read.split(":").collect::<Vec<&str>>()[1].replace(" ", ""))
+                self.n = (line_read.split(':').collect::<Vec<&str>>()[1].replace(' ', ""))
                     .parse::<usize>()?;
                 if self.n == 0 {
                     // If the saved matrix is empty, just write it as such
@@ -310,36 +316,42 @@ impl Sprs {
                     return Ok(());
                 }
             } else if line_read.contains("p:") {
-                let p_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                let p_str = line_read.split(':').collect::<Vec<&str>>()[1];
                 // eliminate brackets
-                let t = p_str.replace("[", "");
-                let p_str = t.replace("]", "");
+                let t = p_str.replace('[', "");
+                let p_str = t.replace(']', "");
                 // populate `Vec`
-                for item in p_str.split(",") {
-                    self.p.push(item.replace(" ", "").parse::<isize>()?);
+                for item in p_str.split(',') {
+                    self.p.push(item.replace(' ', "").parse::<isize>()?);
                 }
             } else if line_read.contains("i:") {
-                let i_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                let i_str = line_read.split(':').collect::<Vec<&str>>()[1];
                 // eliminate brackets
-                let t = i_str.replace("[", "");
-                let i_str = t.replace("]", "");
+                let t = i_str.replace('[', "");
+                let i_str = t.replace(']', "");
                 // populate `Vec`
-                for item in i_str.split(",") {
-                    self.i.push(item.replace(" ", "").parse::<usize>()?);
+                for item in i_str.split(',') {
+                    self.i.push(item.replace(' ', "").parse::<usize>()?);
                 }
             } else if line_read.contains("x:") {
-                let x_str = line_read.split(":").collect::<Vec<&str>>()[1];
+                let x_str = line_read.split(':').collect::<Vec<&str>>()[1];
                 // eliminate brackets
-                let t = x_str.replace("[", "");
-                let x_str = t.replace("]", "");
+                let t = x_str.replace('[', "");
+                let x_str = t.replace(']', "");
                 // populate `Vec`
-                for item in x_str.split(",") {
-                    self.x.push(item.replace(" ", "").parse::<f64>()?);
+                for item in x_str.split(',') {
+                    self.x.push(item.replace(' ', "").parse::<f64>()?);
                 }
             }
         }
 
-        return Ok(());
+        Ok(())
+    }
+}
+
+impl Default for Sprs {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -351,7 +363,7 @@ impl std::ops::Add for Sprs {
     /// Overloads the `+` operator. Adds two sparse matrices
     ///
     fn add(self, other: Sprs) -> Sprs {
-        return add(&self, &other, 1., 1.);
+        add(&self, &other, 1., 1.)
     }
 }
 
@@ -361,7 +373,7 @@ impl std::ops::Add<&Sprs> for Sprs {
     /// Overloads the `+` operator.
     ///
     fn add(self, other: &Sprs) -> Sprs {
-        return add(&self, other, 1., 1.);
+        add(&self, other, 1., 1.)
     }
 }
 
@@ -371,7 +383,7 @@ impl std::ops::Add for &Sprs {
     /// Overloads the `+` operator. Adds two references to sparse matrices
     ///
     fn add(self, other: &Sprs) -> Sprs {
-        return add(self, other, 1., 1.);
+        add(self, other, 1., 1.)
     }
 }
 
@@ -381,7 +393,7 @@ impl std::ops::Add<Sprs> for &Sprs {
     /// Overloads the `+` operator.
     ///
     fn add(self, other: Sprs) -> Sprs {
-        return add(self, &other, 1., 1.);
+        add(self, &other, 1., 1.)
     }
 }
 
@@ -391,7 +403,7 @@ impl std::ops::Sub for Sprs {
     /// Overloads the `-` operator. Subtracts two sparse matrices
     ///
     fn sub(self, other: Sprs) -> Sprs {
-        return add(&self, &other, 1., -1.);
+        add(&self, &other, 1., -1.)
     }
 }
 
@@ -401,7 +413,7 @@ impl std::ops::Sub<&Sprs> for Sprs {
     /// Overloads the `-` operator.
     ///
     fn sub(self, other: &Sprs) -> Sprs {
-        return add(&self, other, 1., -1.);
+        add(&self, other, 1., -1.)
     }
 }
 
@@ -411,7 +423,7 @@ impl std::ops::Sub for &Sprs {
     /// Overloads the `-` operator. Subtracts two references to sparse matrices
     ///
     fn sub(self, other: &Sprs) -> Sprs {
-        return add(self, other, 1., -1.);
+        add(self, other, 1., -1.)
     }
 }
 
@@ -421,7 +433,7 @@ impl std::ops::Sub<Sprs> for &Sprs {
     /// Overloads the `-` operator.
     ///
     fn sub(self, other: Sprs) -> Sprs {
-        return add(self, &other, 1., -1.);
+        add(self, &other, 1., -1.)
     }
 }
 
@@ -431,7 +443,7 @@ impl std::ops::Mul for Sprs {
     /// Overloads the `*` operator. Multiplies two sparse matrices
     ///
     fn mul(self, other: Sprs) -> Sprs {
-        return multiply(&self, &other);
+        multiply(&self, &other)
     }
 }
 
@@ -441,7 +453,7 @@ impl std::ops::Mul<&Sprs> for Sprs {
     /// Overloads the `*` operator.
     ///
     fn mul(self, other: &Sprs) -> Sprs {
-        return multiply(&self, other);
+        multiply(&self, other)
     }
 }
 
@@ -451,7 +463,7 @@ impl std::ops::Mul for &Sprs {
     /// Overloads the `*` operator. Multiplies two references to sparse matrices
     ///
     fn mul(self, other: &Sprs) -> Sprs {
-        return multiply(self, other);
+        multiply(self, other)
     }
 }
 
@@ -461,7 +473,7 @@ impl std::ops::Mul<Sprs> for &Sprs {
     /// Overloads the `*` operator.
     ///
     fn mul(self, other: Sprs) -> Sprs {
-        return multiply(self, &other);
+        multiply(self, &other)
     }
 }
 
@@ -474,7 +486,7 @@ impl std::ops::Add<f64> for Sprs {
     /// sparse matrix
     ///
     fn add(self, other: f64) -> Sprs {
-        return scpmat(other, &self);
+        scpmat(other, &self)
     }
 }
 
@@ -485,7 +497,7 @@ impl std::ops::Add<f64> for &Sprs {
     /// sparse matrix
     ///
     fn add(self, other: f64) -> Sprs {
-        return scpmat(other, &self);
+        scpmat(other, self)
     }
 }
 
@@ -496,7 +508,7 @@ impl std::ops::Sub<f64> for Sprs {
     /// a sparse matrix
     ///
     fn sub(self, other: f64) -> Sprs {
-        return scpmat(-other, &self);
+        scpmat(-other, &self)
     }
 }
 
@@ -507,7 +519,7 @@ impl std::ops::Sub<f64> for &Sprs {
     /// a sparse matrix
     ///
     fn sub(self, other: f64) -> Sprs {
-        return scpmat(-other, &self);
+        scpmat(-other, self)
     }
 }
 
@@ -518,7 +530,7 @@ impl std::ops::Mul<f64> for Sprs {
     /// a sparse matrix
     ///
     fn mul(self, other: f64) -> Sprs {
-        return scxmat(other, &self);
+        scxmat(other, &self)
     }
 }
 
@@ -529,7 +541,7 @@ impl std::ops::Mul<f64> for &Sprs {
     /// a sparse matrix
     ///
     fn mul(self, other: f64) -> Sprs {
-        return scxmat(other, &self);
+        scxmat(other, self)
     }
 }
 
@@ -540,7 +552,7 @@ impl std::ops::Div<f64> for Sprs {
     /// a sparse matrix
     ///
     fn div(self, other: f64) -> Sprs {
-        return scxmat(other.powi(-1), &self);
+        scxmat(other.recip(), &self)
     }
 }
 
@@ -551,7 +563,7 @@ impl std::ops::Div<f64> for &Sprs {
     /// a sparse matrix
     ///
     fn div(self, other: f64) -> Sprs {
-        return scxmat(other.powi(-1), &self);
+        scxmat(other.recip(), self)
     }
 }
 
@@ -564,7 +576,7 @@ impl std::ops::Add<Sprs> for f64 {
     /// sparse matrix
     ///
     fn add(self, other: Sprs) -> Sprs {
-        return scpmat(self, &other);
+        scpmat(self, &other)
     }
 }
 
@@ -575,7 +587,7 @@ impl std::ops::Add<&Sprs> for f64 {
     /// sparse matrix
     ///
     fn add(self, other: &Sprs) -> Sprs {
-        return scpmat(self, other);
+        scpmat(self, other)
     }
 }
 
@@ -586,7 +598,7 @@ impl std::ops::Sub<Sprs> for f64 {
     /// a sparse matrix
     ///
     fn sub(self, other: Sprs) -> Sprs {
-        return scpmat(self, &scxmat(-1., &other));
+        scpmat(self, &scxmat(-1., &other))
     }
 }
 
@@ -597,7 +609,7 @@ impl std::ops::Sub<&Sprs> for f64 {
     /// a sparse matrix
     ///
     fn sub(self, other: &Sprs) -> Sprs {
-        return scpmat(self, &scxmat(-1., other));
+        scpmat(self, &scxmat(-1., other))
     }
 }
 
@@ -608,7 +620,7 @@ impl std::ops::Mul<Sprs> for f64 {
     /// a sparse matrix
     ///
     fn mul(self, other: Sprs) -> Sprs {
-        return scxmat(self, &other);
+        scxmat(self, &other)
     }
 }
 
@@ -619,7 +631,7 @@ impl std::ops::Mul<&Sprs> for f64 {
     /// a sparse matrix
     ///
     fn mul(self, other: &Sprs) -> Sprs {
-        return scxmat(self, other);
+        scxmat(self, other)
     }
 }
 
@@ -637,7 +649,7 @@ pub struct Trpl {
     pub n: usize,
     /// column indices
     pub p: Vec<isize>,
-    /// row indicies
+    /// row indices
     pub i: Vec<usize>,
     /// numericals values
     pub x: Vec<f64>,
@@ -647,14 +659,13 @@ impl Trpl {
     /// Initializes to an empty matrix
     ///
     pub fn new() -> Trpl {
-        let s = Trpl {
+        Trpl {
             m: 0,
             n: 0,
             p: Vec::new(),
             i: Vec::new(),
             x: Vec::new(),
-        };
-        return s;
+        }
     }
 
     /// Append new value to the matrix
@@ -699,7 +710,7 @@ impl Trpl {
             s.x[p] = self.x[k];
         }
 
-        return s;
+        s
     }
 
     /// Sum duplicate entries (in the same position)
@@ -728,7 +739,7 @@ impl Trpl {
     }
 
     /// Get element from (row, column) position. If more than one element
-    /// exsists returns the first one found.
+    /// exists returns the first one found.
     ///
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
@@ -739,7 +750,8 @@ impl Trpl {
                 return Some(self.x[i]);
             }
         }
-        return None;
+
+        None
     }
 
     /// Get all elements from (row, column) position.
@@ -758,11 +770,17 @@ impl Trpl {
             }
         }
 
-        if r.len() > 0 {
-            return Some((pos, r));
+        if !r.is_empty() {
+            Some((pos, r))
         } else {
-            return None;
+            None
         }
+    }
+}
+
+impl Default for Trpl {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -790,7 +808,7 @@ impl Symb {
     /// Initializes to empty struct
     ///
     pub fn new() -> Symb {
-        let s = Symb {
+        Symb {
             pinv: None,
             q: None,
             parent: Vec::new(),
@@ -798,8 +816,13 @@ impl Symb {
             m2: 0,
             lnz: 0,
             unz: 0,
-        };
-        return s;
+        }
+    }
+}
+
+impl Default for Symb {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -821,12 +844,17 @@ impl Nmrc {
     /// Initializes to empty struct
     ///
     pub fn new() -> Nmrc {
-        let n = Nmrc {
+        Nmrc {
             l: Sprs::new(),
             u: Sprs::new(),
             pinv: None,
             b: Vec::new(),
-        };
-        return n;
+        }
+    }
+}
+
+impl Default for Nmrc {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -87,9 +87,9 @@ impl Sprs {
 
     /// Allocates a matrix from a 2D array of Vec
     ///
-    pub fn new_from_vec(t: &Vec<Vec<f64>>) -> Sprs {
+    pub fn new_from_vec(t: &[Vec<f64>]) -> Sprs {
         let mut s = Sprs::new();
-        s.from_vec(&t[..]);
+        s.from_vec(t);
 
         s
     }

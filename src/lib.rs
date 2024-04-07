@@ -653,7 +653,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     let mut x = vec![0.; a.n];
     let mut s;
-    s = sqr(&a, order, false); // ordering and symbolic analysis
+    s = sqr(a, order, false); // ordering and symbolic analysis
     let n = lu(a, &mut s, tol); // numeric LU factorization
 
     ipvec(a.n, &n.pinv, b, &mut x); // x = P*b
@@ -793,12 +793,9 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
         v.i[vnz] = k;
         vnz += 1;
         top = n;
-        col = match &s.q {
-            Some(q) => q[k],
-            None => k as isize,
-        };
+        col = s.q.as_ref().map_or(k, |q| q[k] as usize);
 
-        for p in a.p[col as usize]..a.p[(col + 1) as usize] {
+        for p in a.p[col]..a.p[col + 1] {
             // find R(:,k) pattern
             i = s.pinv.as_ref().unwrap()[leftmost_p + a.i[p as usize]]; // i = min(find(A(i,Q)))
             let mut len = 0;
@@ -1099,15 +1096,14 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
     let mut s = Symb::new();
     let pst;
 
-    s.q = amd(&a, order); // fill-reducing ordering
+    s.q = amd(a, order); // fill-reducing ordering
     if qr {
         // QR symbolic analysis
-        let c;
-        if order >= 0 {
-            c = permute(&a, &None, &s.q);
+        let c = if order >= 0 {
+            permute(a, &None, &s.q)
         } else {
-            c = a.clone();
-        }
+            a.clone()
+        };
         s.parent = etree(&c, true); // etree of C'*C, where C=A(:,Q)
         pst = post(a.n, &s.parent);
         s.cp = counts(&c, &s.parent, &pst, true); // col counts chol(C'*C)
@@ -1120,7 +1116,8 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
         s.unz = 4 * a.p[a.n] as usize + a.n; // for LU factorization only
         s.lnz = s.unz; // guess nnz(L) and nnz(U)
     }
-    return s;
+
+    s
 }
 
 /// C = A'
@@ -1179,7 +1176,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
         }
     }
 
-    return c;
+    c
 }
 
 /// Solves an upper triangular system. Solves U*x=b.
@@ -1314,14 +1311,14 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         return None;
     }
 
-    let mut at = transpose(&a); // compute A'
+    let mut at = transpose(a); // compute A'
     let m = a.m;
     let n = a.n;
     dense = std::cmp::max(16, (10. * f32::sqrt(n as f32)) as isize); // find dense threshold
     dense = std::cmp::min((n - 2) as isize, dense);
 
     if order == 0 && n == m {
-        c = add(&a, &at, 0., 0.); // C = A+A'
+        c = add(a, &at, 0., 0.); // C = A+A'
     } else if order == 1 {
         p2 = 0; // drop dense columns from AT
         for j in 0..m {
@@ -1340,7 +1337,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         let a2 = transpose(&at); // A2 = AT'
         c = multiply(&at, &a2); // C=A'*A with no dense rows
     } else {
-        c = multiply(&at, &a); // C=A'*A
+        c = multiply(&at, a); // C=A'*A
     }
     drop(at);
 
@@ -1639,7 +1636,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
                         && ww[(elen as isize + j) as usize] == eln;
 
                     p = c.p[j as usize] + 1;
-                    while ok && p <= c.p[j as usize] + ln - 1 {
+                    while ok && p < c.p[j as usize] + ln {
                         if ww[w + c.i[p as usize]] != mark_v {
                             // compare i and j
                             ok = false;
@@ -1736,7 +1733,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         }
     }
 
-    return Some(p_v);
+    Some(p_v)
 }
 
 /// process edge (j,i) of the matrix
@@ -1754,13 +1751,12 @@ fn cedge(
     let mut q;
     let mut s;
     let mut sparent;
-    let jprev;
 
     if i <= j || w[(first as isize + j) as usize] <= w[(maxfirst as isize + i) as usize] {
         return;
     }
     w[(maxfirst as isize + i) as usize] = w[(first as isize + j) as usize]; // update max first[j] seen so far
-    jprev = w[(prevleaf as isize + i) as usize]; // j is a leaf of the ith subtree
+    let jprev = w[(prevleaf as isize + i) as usize]; // j is a leaf of the ith subtree
     delta_colcount[j as usize] += 1; // A(i,j) is in the skeleton matrix
     if jprev != -1 {
         // q = least common ancestor of jprev and j
@@ -1784,30 +1780,24 @@ fn cedge(
 /// colcount = column counts of LL'=A or LL'=A'A, given parent & post ordering
 ///
 fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<isize> {
-    let at: Sprs;
     let m = a.m;
     let n = a.n;
-    let s;
-    if ata {
-        s = 4 * n + (n + m + 1);
-    } else {
-        s = 4 * n + 0;
-    }
+
+    let s = if ata { 4 * n + n + m + 1 } else { 4 * n };
+
     let mut w = vec![0; s]; // get workspace
-    let first = 0 + 3 * n; // pointer for w
+    let first = 3 * n; // pointer for w
     let ancestor = 0; // pointer for w
-    let maxfirst = 0 + n; // pointer for w
-    let prevleaf = 0 + 2 * n; // pointer for w
+    let maxfirst = n; // pointer for w
+    let prevleaf = 2 * n; // pointer for w
     let head = 4 * n; // pointer for w
     let next = 5 * n + 1; // pointer for w
     let mut delta_colcount = vec![0; n]; // allocate result || CSparse: delta = colcount = cs_malloc (n, sizeof (int)) ;
     let mut j;
     let mut k;
 
-    at = transpose(&a);
-    for k in 0..s {
-        w[k] = -1; // clear workspace [0..s-1]
-    }
+    let at = transpose(a);
+    w[0..s].fill(-1); // clear workspace [0..s-1]
     for k in 0..n {
         // find first [j]
         j = post[k];
@@ -1886,11 +1876,11 @@ fn counts(a: &Sprs, parent: &Vec<isize>, post: &Vec<isize>, ata: bool) -> Vec<is
     for j in 0..n {
         // sum up delta's of each child
         if parent[j] != -1 {
-            delta_colcount[parent[j] as usize] += delta_colcount[j as usize];
+            delta_colcount[parent[j] as usize] += delta_colcount[j];
         }
     }
 
-    return delta_colcount;
+    delta_colcount
 }
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
@@ -1903,7 +1893,8 @@ fn cumsum(p: &mut Vec<isize>, c: &mut Vec<isize>, n: usize) -> usize {
         c[i] = p[i];
     }
     p[n] = nz;
-    return nz as usize;
+
+    nz as usize
 }
 
 /// depth-first-search of the graph of a matrix, starting at node j
@@ -1967,13 +1958,13 @@ fn dfs(
         }
     }
 
-    return top;
+    top
 }
 
 /// keep off-diagonal entries; drop diagonal entries
 ///
 fn diag(i: isize, j: isize, _: f64) -> bool {
-    return i != j;
+    i != j
 }
 
 /// compute nonzero pattern of L(k,:)
@@ -2014,30 +2005,28 @@ fn ereach(
             w[s + top] = w[s + len];
         }
     }
-    return top; // s [top..n-1] contains pattern of L(k,:)
+
+    top // s [top..n-1] contains pattern of L(k,:)
 }
 
 /// compute the etree of A (using triu(A), or A'A without forming A'A
 ///
 fn etree(a: &Sprs, ata: bool) -> Vec<isize> {
     let mut parent = vec![0; a.n];
-    let mut w;
     let mut i;
     let mut inext;
 
-    if ata {
-        w = vec![0; a.n + a.m];
+    let mut w = if ata {
+        vec![0; a.n + a.m]
     } else {
-        w = vec![0; a.n];
-    }
+        vec![0; a.n]
+    };
 
     let ancestor = 0;
     let prev = ancestor + a.n;
 
     if ata {
-        for i in 0..a.m {
-            w[prev + i] = -1;
-        }
+        w[prev..prev + a.m].fill(-1);
     }
 
     for k in 0..a.n {
@@ -2065,7 +2054,8 @@ fn etree(a: &Sprs, ata: bool) -> Vec<isize> {
             }
         }
     }
-    return parent;
+
+    parent
 }
 
 /// drop entries for which fkeep(A(i,j)) is false; return nz if OK, else -1
@@ -2073,9 +2063,7 @@ fn etree(a: &Sprs, ata: bool) -> Vec<isize> {
 fn fkeep(a: &mut Sprs, f: &dyn Fn(isize, isize, f64) -> bool) -> isize {
     let mut p;
     let mut nz = 0;
-    let n;
-
-    n = a.n;
+    let n = a.n;
     for j in 0..n {
         p = a.p[j]; // get current location of col j
         a.p[j] = nz; // record new location of col j
@@ -2090,7 +2078,8 @@ fn fkeep(a: &mut Sprs, f: &dyn Fn(isize, isize, f64) -> bool) -> isize {
         }
     }
     a.p[n] = nz;
-    return nz;
+
+    nz
 }
 
 /// apply the ith Householder vector to x

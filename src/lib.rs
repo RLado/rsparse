@@ -518,9 +518,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         b: Vec::new(),
     };
 
-    for i in 0..n {
-        x[i] = 0.; // clear workspace
-    }
+    x[0..n].fill(0.); // clear workspace
     for i in 0..n {
         n_mat.pinv.as_mut().unwrap()[i] = -1; // no rows pivotal yet
     }
@@ -795,9 +793,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     let mut n_mat = Nmrc::new();
     let mut beta = vec![0.; n]; // equivalent to n_mat.b
 
-    for w_val in w.iter_mut().take(s.m2) {
-        *w_val = -1; // clear w, to mark nodes
-    }
+    w[0..s.m2].fill(-1); // clear w, to mark nodes
     rnz = 0;
     vnz = 0;
     for k in 0..n {

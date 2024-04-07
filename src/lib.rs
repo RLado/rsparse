@@ -1605,7 +1605,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
                 ww[(len as isize + i) as usize] = pn - p1 + 1; // new len of adj. list of node i
                 h %= n; // finalize hash of i
                 ww[(next as isize + i) as usize] = ww[hhead + h]; // place i in hash bucket
-                ww[(hhead + h)] = i;
+                ww[hhead + h] = i;
                 p_v[(last as isize + i) as usize] = h as isize; // save hash of i in last[i]
             }
         } // scan2 is done

@@ -273,14 +273,10 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     let wc = 2 * n; // pointer of w
     let mut x = vec![0.; n];
 
-    let c = {
-        if s.pinv.is_some() {
-            symperm(&a, &s.pinv)
-        } else {
-            a.clone()
-        }
+    let c = match s.pinv {
+        Some(_) => symperm(a, &s.pinv),
+        None => a.clone(),
     };
-
     n_mat.l = Sprs::zeros(n, n, s.cp[n] as usize);
     for k in 0..n {
         // --- Nonzero pattern of L(k,:) ------------------------------------
@@ -393,9 +389,10 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
 /// ```
 pub fn gaxpy(a_mat: &Sprs, x: &Vec<f64>, y: &Vec<f64>) -> Vec<f64> {
     let mut r = y.clone();
-    for j in 0..a_mat.n {
+    for (j, &x_j) in x.iter().enumerate().take(a_mat.n) {
         for p in a_mat.p[j]..a_mat.p[j + 1] {
-            r[a_mat.i[p as usize]] += a_mat.x[p as usize] * x[j];
+            let p_u = p as usize;
+            r[a_mat.i[p_u]] += a_mat.x[p_u] * x_j;
         }
     }
 
@@ -506,7 +503,6 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     let mut top;
     let mut ipiv;
     let mut a_f;
-    let mut i;
     let mut t;
     let mut pivot;
     let mut x = vec![0.; n];
@@ -519,12 +515,9 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     };
 
     x[0..n].fill(0.); // clear workspace
-    for i in 0..n {
-        n_mat.pinv.as_mut().unwrap()[i] = -1; // no rows pivotal yet
-    }
-    for k in 0..=n {
-        n_mat.l.p[k] = 0; // no cols of L yet
-    }
+    n_mat.pinv.as_mut().unwrap()[0..n].fill(-1); // no rows pivotal yet
+    n_mat.l.p[0..n + 1].fill(0); // no cols of L yet
+
     s.lnz = 0;
     s.unz = 0;
     for k in 0..n {
@@ -547,18 +540,14 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
             n_mat.u.x.resize(nsz, 0.);
         }
 
-        if s.q.is_some() {
-            col = s.q.as_ref().unwrap()[k] as usize;
-        } else {
-            col = k;
-        }
+        col = s.q.as_ref().map_or(k, |q| q[k] as usize);
         top = splsolve(&mut n_mat.l, a, col, &mut xi, &mut x, &n_mat.pinv); // x = L\A(:,col)
 
         // --- Find pivot ---------------------------------------------------
         ipiv = -1;
         a_f = -1.;
-        for p in top..n {
-            i = xi[p] as usize; // x(i) is nonzero
+        for &i in xi[top..n].iter() {
+            let i = i as usize;
             if n_mat.pinv.as_ref().unwrap()[i] < 0 {
                 // row i is not pivotal
                 t = f64::abs(x[i]);
@@ -589,9 +578,8 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         n_mat.l.i[s.lnz] = ipiv as usize; // first entry in L(:,k) is L(k,k) = 1
         n_mat.l.x[s.lnz] = 1.;
         s.lnz += 1;
-        for p in top..n {
-            // L(k+1:n,k) = x / pivot
-            i = xi[p] as usize;
+        for &i in xi[top..n].iter() {
+            let i = i as usize;
             if n_mat.pinv.as_ref().unwrap()[i] < 0 {
                 // x(i) is an entry in L(:,k)
                 n_mat.l.i[s.lnz] = i; // save unpermuted row in L

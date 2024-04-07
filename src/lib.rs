@@ -242,8 +242,8 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 
     for j in 0..n {
         c.p[j] = nz as isize; // column j of C starts here
-        nz = scatter(a, j, alpha, &mut w, &mut x, j + 1, &mut c, nz); // alpha*A(:,j)
-        nz = scatter(b, j, beta, &mut w, &mut x, j + 1, &mut c, nz); // beta*B(:,j)
+        nz = scatter(a, j, alpha, &mut w[..], &mut x[..], j + 1, &mut c, nz); // alpha*A(:,j)
+        nz = scatter(b, j, beta, &mut w[..], &mut x[..], j + 1, &mut c, nz); // beta*B(:,j)
 
         for p in c.p[j] as usize..nz {
             c.x[p] = x[c.i[p]];
@@ -284,7 +284,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
         n_mat.l.p[k] = w[wc + k];
         x[k] = 0.; // x (0:k) is now zero
         w[k] = k as isize; // mark node k as visited
-        top = ereach(&c, k, &s.parent, ws, &mut w, &mut x, n); // find row k of L
+        top = ereach(&c, k, &s.parent[..], ws, &mut w[..], &mut x[..], n); // find row k of L
         d = x[k]; // d = C(k,k)
         x[k] = 0.; // clear workspace for k+1st iteration
 
@@ -360,10 +360,10 @@ pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
     let n_mat = chol(a, &mut s); // numeric Cholesky factorization
     let mut x = vec![0.; n];
 
-    ipvec(n, &s.pinv, b, &mut x); // x = P*b
+    ipvec(n, &s.pinv, &b[..], &mut x[..]); // x = P*b
     lsolve(&n_mat.l, &mut x); // x = L\x
     ltsolve(&n_mat.l, &mut x); // x = L'\x
-    pvec(n, &s.pinv, &x, b); // b = P'*x
+    pvec(n, &s.pinv, &x[..], &mut b[..]); // b = P'*x
 }
 
 /// Generalized A times X Plus Y
@@ -656,10 +656,10 @@ pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
     s = sqr(a, order, false); // ordering and symbolic analysis
     let n = lu(a, &mut s, tol); // numeric LU factorization
 
-    ipvec(a.n, &n.pinv, b, &mut x); // x = P*b
+    ipvec(a.n, &n.pinv, &b[..], &mut x[..]); // x = P*b
     lsolve(&n.l, &mut x); // x = L\x
     usolve(&n.u, &mut x); // x = U\x
-    ipvec(a.n, &s.q, &x, b); // b = Q*x
+    ipvec(a.n, &s.q, &x[..], &mut b[..]); // b = Q*x
 }
 
 /// C = A * B
@@ -704,8 +704,8 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
                 a,
                 b.i[p as usize],
                 b.x[p as usize],
-                &mut w,
-                &mut x,
+                &mut w[..],
+                &mut x[..],
                 j + 1,
                 &mut c,
                 nz,
@@ -829,7 +829,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
             rnz += 1;
             x[i as usize] = 0.;
             if s.parent[i as usize] == k as isize {
-                vnz = scatter_no_x(i as usize, &mut w, k, &mut v, vnz);
+                vnz = scatter_no_x(i as usize, &mut w[..], k, &mut v, vnz);
             }
         }
         for p in p1..vnz {
@@ -910,25 +910,25 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         let n_mat = qr(a, &s); // numeric QR factorization
         let mut x = vec![0.; s.m2];
 
-        ipvec(m, &s.pinv, b, &mut x); // x(0:m-1) = P*b(0:m-1)
+        ipvec(m, &s.pinv, &b[..], &mut x[..]); // x(0:m-1) = P*b(0:m-1)
         for k in 0..n {
             // apply Householder refl. to x
             happly(&n_mat.l, k, n_mat.b[k], &mut x);
         }
         usolve(&n_mat.u, &mut x); // x = R\x
-        ipvec(n, &s.q, &x, b); // b(0:n-1) = Q*x (permutation)
+        ipvec(n, &s.q, &x[..], &mut b[..]); // b(0:n-1) = Q*x (permutation)
     } else {
         let at = transpose(a); // Ax=b is underdetermined
         let s = sqr(&at, order, true); // ordering and symbolic analysis
         let n_mat = qr(&at, &s); // numeric QR factorization of A'
         let mut x = vec![0.; s.m2];
 
-        pvec(m, &s.q, b, &mut x); // x(0:m-1) = Q'*b (permutation)
+        pvec(m, &s.q, &b[..], &mut x[..]); // x(0:m-1) = Q'*b (permutation)
         utsolve(&n_mat.u, &mut x); // x = R'\x
         for k in (0..m).rev() {
             happly(&n_mat.l, k, n_mat.b[k], &mut x);
         }
-        pvec(n, &s.pinv, &x, b); // b (0:n-1) = P'*x
+        pvec(n, &s.pinv, &x[..], &mut b[..]); // b (0:n-1) = P'*x
     }
 }
 
@@ -950,7 +950,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
     drop(p);
     let c_mat = symperm(a, &s.pinv); // C = spones(triu(A(P,P)))
     s.parent = etree(&c_mat, false); // find e tree of C
-    let post = post(n, &s.parent); // postorder the etree
+    let post = post(n, &s.parent[..]); // postorder the etree
     let mut c = counts(&c_mat, &s.parent, &post, false); // find column counts of chol(C)
     drop(post);
     drop(c_mat);
@@ -1105,7 +1105,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
             a.clone()
         };
         s.parent = etree(&c, true); // etree of C'*C, where C=A(:,Q)
-        pst = post(a.n, &s.parent);
+        pst = post(a.n, &s.parent[..]);
         s.cp = counts(&c, &s.parent, &pst, true); // col counts chol(C'*C)
         s.pinv = vcount(&c, &s.parent[..], &mut s.m2, &mut s.lnz);
         s.unz = 0;
@@ -1972,10 +1972,10 @@ fn diag(i: isize, j: isize, _: f64) -> bool {
 fn ereach(
     a: &Sprs,
     k: usize,
-    parent: &Vec<isize>,
+    parent: &[isize],
     s: usize,
-    w: &mut Vec<isize>,
-    x: &mut Vec<f64>,
+    w: &mut [isize],
+    x: &mut [f64],
     top: usize,
 ) -> usize {
     let mut top = top;
@@ -2131,7 +2131,7 @@ fn house(
 
 /// x(P) = b, for dense vectors x and b; P=None denotes identity
 ///
-fn ipvec(n: usize, p: &Option<Vec<isize>>, b: &Vec<f64>, x: &mut Vec<f64>) {
+fn ipvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
     for k in 0..n {
         if p.is_some() {
             x[p.as_ref().unwrap()[k] as usize] = b[k];
@@ -2189,7 +2189,7 @@ fn pinvert(p: &Option<Vec<isize>>, n: usize) -> Option<Vec<isize>> {
 
 /// post order a forest
 ///
-fn post(n: usize, parent: &Vec<isize>) -> Vec<isize> {
+fn post(n: usize, parent: &[isize]) -> Vec<isize> {
     let mut k = 0;
     let mut post = vec![0; n]; // allocate result
     let mut w = vec![0; 3 * n]; // 3*n workspace
@@ -2220,7 +2220,7 @@ fn post(n: usize, parent: &Vec<isize>) -> Vec<isize> {
 
 /// x = b(P), for dense vectors x and b; P=None denotes identity
 ///
-fn pvec(n: usize, p: &Option<Vec<isize>>, b: &Vec<f64>, x: &mut Vec<f64>) {
+fn pvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
     for (k, x_k) in x.iter_mut().enumerate().take(n) {
         *x_k = match p {
             Some(p) => b[p[k] as usize],
@@ -2261,8 +2261,8 @@ fn scatter(
     a: &Sprs,
     j: usize,
     beta: f64,
-    w: &mut Vec<isize>,
-    x: &mut Vec<f64>,
+    w: &mut [isize],
+    x: &mut [f64],
     mark: usize,
     c: &mut Sprs,
     nz: usize,
@@ -2286,7 +2286,7 @@ fn scatter(
 
 /// beta * A(:,j), where A(:,j) is sparse. For QR decomposition
 ///
-fn scatter_no_x(j: usize, w: &mut Vec<isize>, mark: usize, c: &mut Sprs, nz: usize) -> usize {
+fn scatter_no_x(j: usize, w: &mut [isize], mark: usize, c: &mut Sprs, nz: usize) -> usize {
     let mut i;
     let mut nzo = nz;
     for p in c.p[j] as usize..c.p[j + 1] as usize {

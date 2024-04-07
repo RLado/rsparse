@@ -2109,32 +2109,26 @@ fn house(
     n: usize,
 ) -> f64 {
     let s;
-    let mut sigma = 0.;
     let xp = xp.unwrap_or(0);
     let betap = betap.unwrap_or(0);
 
-    for i in 1..n {
-        sigma += x[i + xp] * x[i + xp];
-    }
-    if sigma == 0. {
-        s = f64::abs(x[0 + xp]); // s = |x(0)|
-        if x[0 + xp] <= 0. {
-            beta[betap] = 2.;
+    let sigma: f64 = (1..n).map(|i| x[i + xp] * x[i + xp]).sum();
+    if sigma != 0. {
+        s = f64::powf(x[xp] * x[xp] + sigma, 0.5); // s = norm (x)
+        x[xp] = if x[xp] <= 0. {
+            x[xp] - s
         } else {
-            beta[betap] = 0.;
-        }
-        x[0 + xp] = 1.;
+            -sigma / (x[xp] + s)
+        };
+        beta[betap] = (-s * x[xp]).recip();
+
     } else {
-        s = f64::powf(x[0 + xp] * x[0 + xp] + sigma, 0.5); // s = norm (x)
-        if x[0 + xp] <= 0. {
-            x[0 + xp] = x[0 + xp] - s;
-        } else {
-            x[0 + xp] = -sigma / (x[0 + xp] + s);
-        }
-        beta[betap] = -1. / (s * x[0 + xp]);
+        s = f64::abs(x[xp]); // s = |x(0)|
+        beta[betap] = if x[xp] <= 0. { 2. } else { 0. };
+        x[xp] = 1.;
     }
 
-    return s;
+    s
 }
 
 /// x(P) = b, for dense vectors x and b; P=None denotes identity

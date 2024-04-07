@@ -93,7 +93,7 @@ fn usolve_1() {
         -0.047146, -0.941265, 1.158658, 0.355142, 0.088052, 0.717684, -0.170555,
     ];
 
-    rsparse::usolve(&u_sparse, &mut b);
+    rsparse::usolve(&u_sparse, &mut b[..]);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -121,7 +121,7 @@ fn utsolve_1() {
         0.4520, 0.6542, -0.8554, -0.7947, -0.9565, -1.0870, 0.1745,
     ];
 
-    rsparse::utsolve(&u_sparse, &mut b);
+    rsparse::utsolve(&u_sparse, &mut b[..]);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -162,7 +162,7 @@ fn lusol_1() {
         0.289215, 0.430638,
     ];
 
-    rsparse::lusol(&l_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&l_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -214,7 +214,7 @@ fn lusol_2() {
         0.264678, -1.228118, -0.035452, -0.676711, -0.066194, 0.761495, 1.852384, -0.282992,
     ];
 
-    rsparse::lusol(&l_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&l_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -236,7 +236,7 @@ fn lusol_3() {
         5.38, 6.15, -6.76, -6.93, 5.08, 2.50, -0.81, -1.61, 0.17, 3.83, 1.53, -6.12, -4.36,
     ];
 
-    rsparse::lusol(&l_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&l_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 0.5);
 }
@@ -295,7 +295,7 @@ fn lusol_4() {
         -3.189117248155740e-02,
     ];
 
-    rsparse::lusol(&l_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&l_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 1e-5);
 }
@@ -323,7 +323,7 @@ fn lusol_5() {
         -0.047146, -0.941265, 1.158658, 0.355142, 0.088052, 0.717684, -0.170555,
     ];
 
-    rsparse::lusol(&u_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&u_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -9229,7 +9229,7 @@ fn lusol_6() {
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
     ];
 
-    rsparse::lusol(&u_sparse, &mut b, 1, 1e-12);
+    rsparse::lusol(&u_sparse, &mut b[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b, &x, 1e-5);
 }
@@ -9249,7 +9249,7 @@ fn cholsol_1() {
 
     assert_ne!(&b, &x);
 
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -9367,7 +9367,7 @@ fn cholsol_2() {
 
     assert_ne!(&b, &x);
 
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 
     utils::assert_eq_f_vec(&b, &x, 1e-6);
 }
@@ -9390,7 +9390,7 @@ fn cholsol_3() {
 
     assert_ne!(&b, &x);
 
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -9413,7 +9413,7 @@ fn cholsol_4() {
 
     assert_ne!(&b, &x);
 
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
 
@@ -9630,7 +9630,7 @@ fn cholsol_5() {
 
     assert_ne!(&b, &x);
 
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 
     utils::assert_eq_f_vec(&b, &x, 1e-6);
 }
@@ -9653,7 +9653,7 @@ fn cholsol_6() {
     let mut b = vec![0.2543, 0.8143, 0.2435, 0.9293, 0.3456, 0.5017, 0.3500];
 
     // Should panic now
-    rsparse::cholsol(&mut c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 }
 
 #[test]
@@ -13665,7 +13665,7 @@ fn cholsol_7() {
     ];
     let b_static = b.clone();
 
-    rsparse::cholsol(&c_sparse, &mut b, 0);
+    rsparse::cholsol(&c_sparse, &mut b[..], 0);
 
     utils::assert_eq_f_vec(
         &rsparse::gaxpy(&c_sparse, &b[..], &vec![0.; b.len()][..]),
@@ -13690,7 +13690,7 @@ fn qrsol_1() {
 
     let x = vec![0.0236, 0.1211, 0.0099, 0.1377, 0.0505];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-1);
 }
@@ -13742,7 +13742,7 @@ fn qrsol_2() {
         0.264678, -1.228118, -0.035452, -0.676711, -0.066194, 0.761495, 1.852384, -0.282992,
     ];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -22648,7 +22648,7 @@ fn qrsol_3() {
         0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000,
     ];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -22864,7 +22864,7 @@ fn qrsol_4() {
         0.000521092091942596,
     ];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -22980,7 +22980,7 @@ fn qrsol_5() {
         0.0169736196228915,
     ];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -23008,7 +23008,7 @@ fn qrsol_6() {
         -0.047146, -0.941265, 1.158658, 0.355142, 0.088052, 0.717684, -0.170555,
     ];
 
-    rsparse::qrsol(&mut c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
 }
@@ -23083,7 +23083,7 @@ fn qrsol_7() {
         0.771571, -0.095160,
     ];
 
-    rsparse::qrsol(&c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(&b, &x, 1e-3);
     utils::assert_eq_f_vec(
@@ -23304,7 +23304,7 @@ fn qrsol_8() {
 
     let b_static = b.clone();
 
-    rsparse::qrsol(&c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(
         &rsparse::gaxpy(&c_sparse, &b[..], &vec![0.; b.len()][..]),
@@ -23527,7 +23527,7 @@ fn qrsol_9() {
     // Transpose C and solve
     c_sparse = rsparse::transpose(&c_sparse); // rectangular matrix 201x200
 
-    rsparse::qrsol(&c_sparse, &mut b, 2);
+    rsparse::qrsol(&c_sparse, &mut b[..], 2);
 
     utils::assert_eq_f_vec(
         &rsparse::gaxpy(&c_sparse, &b[..], &vec![0.; b.len()][..]),
@@ -23648,9 +23648,9 @@ fn allsol_1() {
 
     let mut b_lu = b_chol.clone();
 
-    rsparse::cholsol(&c_sparse, &mut b_chol, 0);
-    rsparse::qrsol(&c_sparse, &mut b_qr, 2);
-    rsparse::lusol(&c_sparse, &mut b_lu, 1, 1e-12);
+    rsparse::cholsol(&c_sparse, &mut b_chol[..], 0);
+    rsparse::qrsol(&c_sparse, &mut b_qr[..], 2);
+    rsparse::lusol(&c_sparse, &mut b_lu[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b_chol, &b_qr, 1e-12);
     utils::assert_eq_f_vec(&b_chol, &b_lu, 1e-12);
@@ -27668,8 +27668,8 @@ fn allsol_2() {
 
     let mut b_lu = b_static.clone();
 
-    rsparse::qrsol(&c_sparse, &mut b_qr, 2);
-    rsparse::lusol(&c_sparse, &mut b_lu, 1, 1e-12);
+    rsparse::qrsol(&c_sparse, &mut b_qr[..], 2);
+    rsparse::lusol(&c_sparse, &mut b_lu[..], 1, 1e-12);
 
     utils::assert_eq_f_vec(&b_lu, &b_qr, 1e-1);
     utils::assert_eq_f_vec(

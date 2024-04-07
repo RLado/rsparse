@@ -354,13 +354,13 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 /// }
 /// ```
 ///
-pub fn cholsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
+pub fn cholsol(a: &Sprs, b: &mut [f64], order: i8) {
     let n = a.n;
     let mut s = schol(a, order); // ordering and symbolic analysis
     let n_mat = chol(a, &mut s); // numeric Cholesky factorization
     let mut x = vec![0.; n];
 
-    ipvec(n, &s.pinv, &b[..], &mut x[..]); // x = P*b
+    ipvec(n, &s.pinv, b, &mut x[..]); // x = P*b
     lsolve(&n_mat.l, &mut x); // x = L\x
     ltsolve(&n_mat.l, &mut x); // x = L'\x
     pvec(n, &s.pinv, &x[..], &mut b[..]); // b = P'*x
@@ -541,7 +541,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
         }
 
         col = s.q.as_ref().map_or(k, |q| q[k] as usize);
-        top = splsolve(&mut n_mat.l, a, col, &mut xi, &mut x[..], &n_mat.pinv); // x = L\A(:,col)
+        top = splsolve(&mut n_mat.l, a, col, &mut xi[..], &mut x[..], &n_mat.pinv); // x = L\A(:,col)
 
         // --- Find pivot ---------------------------------------------------
         ipiv = -1;
@@ -650,15 +650,15 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 /// }
 /// ```
 ///
-pub fn lusol(a: &Sprs, b: &mut Vec<f64>, order: i8, tol: f64) {
+pub fn lusol(a: &Sprs, b: &mut [f64], order: i8, tol: f64) {
     let mut x = vec![0.; a.n];
     let mut s;
     s = sqr(a, order, false); // ordering and symbolic analysis
     let n = lu(a, &mut s, tol); // numeric LU factorization
 
-    ipvec(a.n, &n.pinv, &b[..], &mut x[..]); // x = P*b
+    ipvec(a.n, &n.pinv, b, &mut x[..]); // x = P*b
     lsolve(&n.l, &mut x); // x = L\x
-    usolve(&n.u, &mut x); // x = U\x
+    usolve(&n.u, &mut x[..]); // x = U\x
     ipvec(a.n, &s.q, &x[..], &mut b[..]); // b = Q*x
 }
 
@@ -901,7 +901,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 /// }
 /// ```
 ///
-pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
+pub fn qrsol(a: &Sprs, b: &mut [f64], order: i8) {
     let n = a.n;
     let m = a.m;
 
@@ -910,12 +910,12 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         let n_mat = qr(a, &s); // numeric QR factorization
         let mut x = vec![0.; s.m2];
 
-        ipvec(m, &s.pinv, &b[..], &mut x[..]); // x(0:m-1) = P*b(0:m-1)
+        ipvec(m, &s.pinv, b, &mut x[..]); // x(0:m-1) = P*b(0:m-1)
         for k in 0..n {
             // apply Householder refl. to x
             happly(&n_mat.l, k, n_mat.b[k], &mut x[..]);
         }
-        usolve(&n_mat.u, &mut x); // x = R\x
+        usolve(&n_mat.u, &mut x[..]); // x = R\x
         ipvec(n, &s.q, &x[..], &mut b[..]); // b(0:n-1) = Q*x (permutation)
     } else {
         let at = transpose(a); // Ax=b is underdetermined
@@ -923,8 +923,8 @@ pub fn qrsol(a: &Sprs, b: &mut Vec<f64>, order: i8) {
         let n_mat = qr(&at, &s); // numeric QR factorization of A'
         let mut x = vec![0.; s.m2];
 
-        pvec(m, &s.q, &b[..], &mut x[..]); // x(0:m-1) = Q'*b (permutation)
-        utsolve(&n_mat.u, &mut x); // x = R'\x
+        pvec(m, &s.q, b, &mut x[..]); // x(0:m-1) = Q'*b (permutation)
+        utsolve(&n_mat.u, &mut x[..]); // x = R'\x
         for k in (0..m).rev() {
             happly(&n_mat.l, k, n_mat.b[k], &mut x[..]);
         }
@@ -1212,7 +1212,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
 /// }
 /// ```
 ///
-pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
+pub fn usolve(u: &Sprs, x: &mut [f64]) {
     for j in (0..u.n).rev() {
         x[j] /= u.x[(u.p[j + 1] - 1) as usize];
         for p in u.p[j]..u.p[j + 1] - 1 {
@@ -1254,7 +1254,7 @@ pub fn usolve(u: &Sprs, x: &mut Vec<f64>) {
 /// }
 /// ```
 ///
-pub fn utsolve(u: &Sprs, x: &mut Vec<f64>) {
+pub fn utsolve(u: &Sprs, x: &mut [f64]) {
     for j in 0..u.n {
         for p in u.p[j] as usize..(u.p[j + 1] - 1) as usize {
             x[j] -= u.x[p] * x[u.i[p]];
@@ -1389,7 +1389,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
             // node i is empty
             ww[elen + i] = -2; // element i is dead
             nel += 1;
-            c.p[i] = -1; // i is a root of assemby tree
+            c.p[i] = -1; // i is a root of assembly tree
             ww[w + i] = 0;
         } else if d > dense {
             // node i is dense
@@ -1700,7 +1700,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
         }
     }
 
-    // --- Postordering -----------------------------------------------------
+    // --- Post-ordering ----------------------------------------------------
     for i in 0..n {
         c.p[i] = flip(c.p[i]); // fix assembly tree
     }
@@ -1741,10 +1741,10 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
 fn cedge(
     j: isize,
     i: isize,
-    w: &mut Vec<isize>,
+    w: &mut [isize],
     first: usize,
     maxfirst: usize,
-    delta_colcount: &mut Vec<isize>,
+    delta_colcount: &mut [isize],
     prevleaf: usize,
     ancestor: usize,
 ) {
@@ -1843,10 +1843,10 @@ fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
                     cedge(
                         j,
                         at.i[p as usize] as isize,
-                        &mut w,
+                        &mut w[..],
                         first,
                         maxfirst,
-                        &mut delta_colcount,
+                        &mut delta_colcount[..],
                         prevleaf,
                         ancestor,
                     );
@@ -1860,10 +1860,10 @@ fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
                 cedge(
                     j,
                     at.i[p as usize] as isize,
-                    &mut w,
+                    &mut w[..],
                     first,
                     maxfirst,
-                    &mut delta_colcount,
+                    &mut delta_colcount[..],
                     prevleaf,
                     ancestor,
                 );
@@ -2301,7 +2301,7 @@ fn splsolve(
     l: &mut Sprs,
     b: &Sprs,
     k: usize,
-    xi: &mut Vec<isize>,
+    xi: &mut [isize],
     x: &mut [f64],
     pinv: &Option<Vec<isize>>,
 ) -> usize {

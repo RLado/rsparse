@@ -1998,12 +1998,10 @@ fn ereach(
             // increment statement
             i = parent[i as usize];
         }
-        //TODO
-        while len > 0 {
-            // push path onto stack
+
+        for j in 1..(len + 1) {
             top -= 1;
-            len -= 1;
-            w[s + top] = w[s + len];
+            w[s + top] = w[s + len - j]; // push path on stack
         }
     }
 

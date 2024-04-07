@@ -158,24 +158,22 @@ impl Sprs {
     ///
     /// # Example:
     /// ```
-    /// fn main() {
-    ///     let a = rsparse::data::Trpl{
-    ///        // number of rows
-    ///        m: 3,
-    ///        // number of columns
-    ///        n: 4,
-    ///        // column index
-    ///        p: vec![0, 1, 2, 0, 3, 3],
-    ///        // row index
-    ///        i: vec![0, 1, 2, 1, 2, 2],
-    ///        // values
-    ///        x: vec![2., 3., 4., 5., 6., 7.]
-    ///    };
-    ///    let mut b = rsparse::data::Sprs::new();
-    ///    b.from_trpl(&a);
+    /// let a = rsparse::data::Trpl{
+    ///     // number of rows
+    ///     m: 3,
+    ///     // number of columns
+    ///     n: 4,
+    ///     // column index
+    ///     p: vec![0, 1, 2, 0, 3, 3],
+    ///     // row index
+    ///     i: vec![0, 1, 2, 1, 2, 2],
+    ///     // values
+    ///     x: vec![2., 3., 4., 5., 6., 7.]
+    /// };
+    /// let mut b = rsparse::data::Sprs::new();
+    /// b.from_trpl(&a);
     ///
-    ///    assert_eq!(b.to_dense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
-    /// }
+    /// assert_eq!(b.to_dense(), vec![vec![2., 0., 0., 0.], vec![5., 3., 0., 0.], vec![0., 0., 4., 7.]]);
     /// ```
     ///
     /// If you need duplicate values to be summed use `Trpl`'s method `sum_dupl()`

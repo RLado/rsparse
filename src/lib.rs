@@ -2121,7 +2121,6 @@ fn house(
             -sigma / (x[xp] + s)
         };
         beta[betap] = (-s * x[xp]).recip();
-        
     } else {
         s = f64::abs(x[xp]); // s = |x(0)|
         beta[betap] = if x[xp] <= 0. { 2. } else { 0. };
@@ -2313,9 +2312,8 @@ fn splsolve(
     x: &mut Vec<f64>,
     pinv: &Option<Vec<isize>>,
 ) -> usize {
-    let mut j;
     let mut jnew;
-    let top = reach(l, &b, k, xi, pinv); // xi[top..n-1]=Reach(B(:,k))
+    let top = reach(l, b, k, xi, pinv); // xi[top..n-1]=Reach(B(:,k))
 
     for p in top..l.n {
         x[xi[p] as usize] = 0.; // clear x
@@ -2323,21 +2321,21 @@ fn splsolve(
     for p in b.p[k] as usize..b.p[k + 1] as usize {
         x[b.i[p]] = b.x[p]; // scatter B
     }
-    for px in top..l.n {
-        j = xi[px] as usize; // x(j) is nonzero
-        if pinv.is_some() {
-            jnew = pinv.as_ref().unwrap()[j]; // j is column jnew of L
-        } else {
-            jnew = j as isize; // j is column jnew of L
-        }
+    for j in xi.iter().take(l.n).skip(top) {
+        let j_u = *j as usize; // x(j) is nonzero
+        jnew = match pinv {
+            Some(pinv) => pinv[j_u], // j is column jnew of L
+            None => *j,              // j is column jnew of L
+        };
         if jnew < 0 {
             continue; // column jnew is empty
         }
         for p in (l.p[jnew as usize] + 1) as usize..l.p[jnew as usize + 1] as usize {
-            x[l.i[p]] -= l.x[p] * x[j]; // x(i) -= L(i,j) * x(j)
+            x[l.i[p]] -= l.x[p] * x[j_u]; // x(i) -= L(i,j) * x(j)
         }
     }
-    return top; // return top of stack
+
+    top // return top of stack
 }
 
 /// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
@@ -2353,49 +2351,34 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<isize>>) -> Sprs {
 
     for j in 0..n {
         //count entries in each column of C
-        if pinv.is_some() {
-            j2 = pinv.as_ref().unwrap()[j] as usize; // column j of A is column j2 of C
-        } else {
-            j2 = j;
-        }
+        j2 = pinv.as_ref().map_or(j, |pinv| pinv[j] as usize); // column j of A is column j2 of C
 
         for p in a.p[j]..a.p[j + 1] {
             i = a.i[p as usize];
             if i > j {
                 continue; // skip lower triangular part of A
             }
-            if pinv.is_some() {
-                i2 = pinv.as_ref().unwrap()[i] as usize; // row i of A is row i2 of C
-            } else {
-                i2 = i;
-            }
+            i2 = pinv.as_ref().map_or(i, |pinv| pinv[i] as usize); // row i of A is row i2 of C
             w[std::cmp::max(i2, j2)] += 1; // column count of C
         }
     }
     cumsum(&mut c.p, &mut w, n); // compute column pointers of C
     for j in 0..n {
-        if pinv.is_some() {
-            j2 = pinv.as_ref().unwrap()[j] as usize; // column j of A is column j2 of C
-        } else {
-            j2 = j;
-        }
+        j2 = pinv.as_ref().map_or(j, |pinv| pinv[j] as usize); // column j of A is column j2 of C
         for p in a.p[j]..a.p[j + 1] {
             i = a.i[p as usize];
             if i > j {
                 continue; // skip lower triangular part of A
             }
-            if pinv.is_some() {
-                i2 = pinv.as_ref().unwrap()[i] as usize; // row i of A is row i2 of C
-            } else {
-                i2 = i;
-            }
+            i2 = pinv.as_ref().map_or(i, |pinv| pinv[i] as usize); // row i of A is row i2 of C
             q = w[std::cmp::max(i2, j2)] as usize;
             w[std::cmp::max(i2, j2)] += 1;
             c.i[q] = std::cmp::min(i2, j2);
             c.x[q] = a.x[p as usize];
         }
     }
-    return c;
+
+    c
 }
 
 /// depth-first search and postorder of a tree rooted at node j (for fn amd())
@@ -2419,17 +2402,21 @@ fn tdfs(
         // while (stack is not empty)
         p = ww[(stack as isize + top) as usize]; // p = top of stack
         i = ww[(head as isize + p) as usize]; // i = youngest child of p
-        if i == -1 {
-            top -= 1; // p has no unordered children left
-            post[k as usize] = p; // node p is the kth postordered node
-            k += 1;
-        } else {
-            ww[(head as isize + p) as usize] = ww[(next as isize + i) as usize]; // remove i from children of p
-            top += 1;
-            ww[(stack as isize + top) as usize] = i; // start dfs on child node i
+        match i {
+            -1 => {
+                top -= 1; // p has no unordered children left
+                post[k as usize] = p; // node p is the kth postordered node
+                k += 1;
+            }
+            _ => {
+                ww[(head as isize + p) as usize] = ww[(next as isize + i) as usize]; // remove i from children of p
+                top += 1;
+                ww[(stack as isize + top) as usize] = i; // start dfs on child node i
+            }
         }
     }
-    return k;
+
+    k
 }
 
 /// compute vnz, Pinv, leftmost, m2 from A and parent
@@ -2448,18 +2435,10 @@ fn vcount(a: &Sprs, parent: &Vec<isize>, m2: &mut usize, vnz: &mut usize) -> Opt
     let tail = m + n;
     let nque = m + 2 * n;
 
-    for k in 0..n {
-        w[head + k] = -1; // queue k is empty
-    }
-    for k in 0..n {
-        w[tail + k] = -1;
-    }
-    for k in 0..n {
-        w[nque + k] = 0;
-    }
-    for i in 0..m {
-        pinv[leftmost + i] = -1;
-    }
+    w[head..head + n].fill(-1); // queue k is empty
+    w[tail..tail + n].fill(-1);
+    w[nque..nque + n].fill(0);
+    pinv[leftmost..leftmost + m].fill(-1);
     for k in (0..n).rev() {
         for p in a.p[k]..a.p[k + 1] {
             pinv[leftmost + a.i[p as usize]] = k as isize; // leftmost[i] = min(find(A(i,:)))
@@ -2509,13 +2488,14 @@ fn vcount(a: &Sprs, parent: &Vec<isize>, m2: &mut usize, vnz: &mut usize) -> Opt
         }
     }
     let mut k = n;
-    for i in 0..m {
-        if pinv[i as usize] < 0 {
-            pinv[i as usize] = k as isize;
+    for p in pinv.iter_mut().take(m) {
+        if *p < 0 {
+            *p = k as isize;
             k += 1;
         }
     }
-    return Some(pinv);
+
+    Some(pinv)
 }
 
 /// clears W
@@ -2530,28 +2510,29 @@ fn wclear(mark_v: isize, lemax: isize, ww: &mut Vec<isize>, w: usize, n: usize) 
         }
         mark = 2;
     }
-    return mark; // at this point, w [0..n-1] < mark holds
+
+    mark // at this point, w [0..n-1] < mark holds
 }
 
 // --- Inline functions --------------------------------------------------------
 
 #[inline]
 fn flip(i: isize) -> isize {
-    return -(i) - 2;
+    -(i) - 2
 }
 
 #[inline]
 fn unflip(i: isize) -> isize {
     if i < 0 {
-        return flip(i);
+        flip(i)
     } else {
-        return i;
+        i
     }
 }
 
 #[inline]
 fn marked(ap: &Vec<isize>, j: usize) -> bool {
-    return ap[j] < 0;
+    ap[j] < 0
 }
 
 #[inline]

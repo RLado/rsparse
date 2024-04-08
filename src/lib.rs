@@ -1874,10 +1874,10 @@ fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
 ///
 fn cumsum(p: &mut [isize], c: &mut [isize], n: usize) -> usize {
     let mut nz = 0;
-    for i in 0..n {
-        p[i] = nz;
-        nz += c[i];
-        c[i] = p[i];
+    for (p_i, c_i) in p.iter_mut().zip(c.iter_mut()).take(n) {
+        *p_i = nz;
+        nz += *c_i;
+        *c_i = *p_i;
     }
     p[n] = nz;
 

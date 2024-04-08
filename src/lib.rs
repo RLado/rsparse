@@ -1031,8 +1031,6 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 ///     r_sparse.to_dense()
 /// );
 /// ```
-
-/// ```
 ///
 pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
     let mut c = Sprs::new();

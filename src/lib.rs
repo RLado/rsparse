@@ -2099,6 +2099,7 @@ fn house(
     let betap = betap.unwrap_or(0);
 
     let sigma: f64 = (1..n).map(|i| x[i + xp] * x[i + xp]).sum();
+    // FIXME: float comparison with bit-wise not equals
     if sigma != 0. {
         s = (x[xp] * x[xp] + sigma).sqrt(); // s = norm (x)
         x[xp] = if x[xp] <= 0. {

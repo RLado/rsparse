@@ -12,7 +12,7 @@ A Rust library for solving sparse linear systems using direct methods.
 - Triplet matrix (`Trpl`)
 
 ## Features
-- Convert from dense `Vec<Vec<f64>>` matrix to CSC sparse matrix `Sprs`
+- Convert from dense `[Vec<f64>]` or `Vec<Vec<64>>` matrix to CSC sparse matrix `Sprs`
 - Convert from sparse to dense `Vec<Vec<f64>>`
 - Convert from a triplet format matrix `Trpl` to CSC `Sprs`
 - Sparse matrix addition [C=A+B]
@@ -41,22 +41,21 @@ fn main(){
         nzmax: 5,
         // number of rows
         m: 3,
-        //number of columns
+        // number of columns
         n: 3,
         // Values
         x: vec![1., 9., 9., 2., 9.],
-        // Indices  
+        // Indices
         i: vec![1, 2, 2, 0, 2],
         // Pointers
         p: vec![0, 2, 3, 5]
     };
 
     // Import the same matrix from a dense structure
-    let mut a2 = rsparse::data::Sprs::new();
-    a2.from_vec(
-        &vec![
-            vec![0., 0., 2.], 
-            vec![1., 0., 0.], 
+    let mut a2 = rsparse::data::Sprs::new_from_vec(
+        &[
+            vec![0., 0., 2.],
+            vec![1., 0., 0.],
             vec![9., 9., 9.]
         ]
     );
@@ -72,7 +71,6 @@ fn main(){
     // Transform A to dense and print result
     println!("\nA");
     print_matrix(&a.to_dense());
-
 
     // Transpose A
     let at = rsparse::transpose(&a);
@@ -91,11 +89,11 @@ fn main(){
     // Transform to dense and print result
     println!("\nC");
     print_matrix(&c.to_dense());
-}
 
-fn print_matrix(vec: &Vec<Vec<f64>>) {
-    for row in vec {
-        println!("{:?}", row);
+    fn print_matrix(vec: &[Vec<f64>]) {
+        for row in vec {
+            println!("{:?}", row);
+        }
     }
 }
 ```
@@ -131,7 +129,7 @@ use rsparse;
 
 fn main(){
     // Arbitrary A matrix (dense)
-    let a = vec![
+    let a = [
         vec![8.2541e-01, 9.5622e-01, 4.6698e-01, 8.4410e-03, 6.3193e-01, 7.5741e-01, 5.3584e-01, 3.9448e-01],
         vec![7.4808e-01, 2.0403e-01, 9.4649e-01, 2.5086e-01, 2.6931e-01, 5.5866e-01, 3.1827e-01, 2.9819e-02],
         vec![6.3980e-01, 9.1615e-01, 8.5515e-01, 9.5323e-01, 7.8323e-01, 8.6003e-01, 7.5761e-01, 8.9255e-01],
@@ -147,7 +145,7 @@ fn main(){
     a_sparse.from_vec(&a);
 
     // Generate arbitrary b vector
-    let mut b = vec![
+    let mut b = [
         0.4377,
         0.7328,
         0.1227,

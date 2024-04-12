@@ -12,7 +12,7 @@
 //! - Triplet matrix (`Trpl`)
 //!
 //! ## Features
-//! - Convert from dense `Vec<Vec<f64>>` matrix to CSC sparse matrix `Sprs`
+//! - Convert from dense `[Vec<f64>]` or `Vec<Vec<64>>` matrix to CSC sparse matrix `Sprs`
 //! - Convert from sparse to dense `Vec<Vec<f64>>`
 //! - Convert from a triplet format matrix `Trpl` to CSC `Sprs`
 //! - Sparse matrix addition [C=A+B]
@@ -69,7 +69,6 @@
 //! println!("\nA");
 //! print_matrix(&a.to_dense());
 //!
-//!
 //! // Transpose A
 //! let at = rsparse::transpose(&a);
 //! // Transform to dense and print result
@@ -88,7 +87,7 @@
 //! println!("\nC");
 //! print_matrix(&c.to_dense());
 //!
-//! fn print_matrix(vec: &Vec<Vec<f64>>) {
+//! fn print_matrix(vec: &[Vec<f64>]) {
 //!     for row in vec {
 //!         println!("{:?}", row);
 //!     }
@@ -138,7 +137,7 @@
 //! let mut a_sparse = rsparse::data::Sprs::new_from_vec(&a);
 //!
 //! // Generate arbitrary b vector
-//! let mut b = vec![
+//! let mut b = [
 //!     0.4377,
 //!     0.7328,
 //!     0.1227,
@@ -339,7 +338,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 /// let mut c_sparse = rsparse::data::Sprs::new();
 /// c_sparse.from_vec(&c);
 ///
-/// let mut b = vec![
+/// let mut b = [
 ///     0.2543,
 ///     0.8143,
 ///     0.2435,
@@ -421,7 +420,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &[f64], y: &[f64]) -> Vec<f64> {
 /// let mut l_sparse = rsparse::data::Sprs::new();
 /// l_sparse.from_vec(&l);
 ///
-/// let mut b = vec![
+/// let mut b = [
 ///     0.8568,
 ///     0.3219,
 ///     0.9263,
@@ -464,7 +463,7 @@ pub fn lsolve(l: &Sprs, x: &mut [f64]) {
 /// let mut l_sparse = rsparse::data::Sprs::new();
 /// l_sparse.from_vec(&l);
 ///
-/// let mut b = vec![
+/// let mut b = [
 ///     0.444841,
 ///     0.528773,
 ///     0.988345,
@@ -625,7 +624,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 /// a_sparse.from_vec(&a);
 ///
 /// // Generate arbitrary b vector
-/// let mut b = vec![
+/// let mut b = [
 ///     0.4377,
 ///     0.7328,
 ///     0.1227,
@@ -880,7 +879,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 /// a_sparse.from_vec(&a);
 ///
 /// // Generate arbitrary b vector
-/// let mut b = vec![
+/// let mut b = [
 ///     0.4377,
 ///     0.7328,
 ///     0.1227,
@@ -1187,7 +1186,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
 /// let mut u_sparse = rsparse::data::Sprs::new();
 /// u_sparse.from_vec(&u);
 ///
-/// let mut b = vec![
+/// let mut b = [
 ///     0.189772,
 ///     0.055761,
 ///     0.030676,
@@ -1227,7 +1226,7 @@ pub fn usolve(u: &Sprs, x: &mut [f64]) {
 /// let mut u_sparse = rsparse::data::Sprs::new();
 /// u_sparse.from_vec(&u);
 ///
-/// let mut b = vec![
+/// let mut b = [
 ///     0.444841,
 ///     0.528773,
 ///     0.988345,

@@ -89,11 +89,11 @@ fn main(){
     // Transform to dense and print result
     println!("\nC");
     print_matrix(&c.to_dense());
+}
 
-    fn print_matrix(vec: &[Vec<f64>]) {
-        for row in vec {
-            println!("{:?}", row);
-        }
+fn print_matrix(vec: &[Vec<f64>]) {
+    for row in vec {
+        println!("{:?}", row);
     }
 }
 ```

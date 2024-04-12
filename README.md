@@ -34,7 +34,7 @@ A Rust library for solving sparse linear systems using direct methods.
 ```rust
 use rsparse;
 
-fn main(){
+fn main() {
     // Create a CSC sparse matrix A
     let a = rsparse::data::Sprs{
         // Maximum number of entries
@@ -127,7 +127,7 @@ C
 ```rust
 use rsparse;
 
-fn main(){
+fn main() {
     // Arbitrary A matrix (dense)
     let a = [
         vec![8.2541e-01, 9.5622e-01, 4.6698e-01, 8.4410e-03, 6.3193e-01, 7.5741e-01, 5.3584e-01, 3.9448e-01],

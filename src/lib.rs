@@ -253,7 +253,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 ///
 /// See: `schol(...)`
 ///
-pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
+pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, String> {
     let mut top;
     let mut d;
     let mut lki;
@@ -302,7 +302,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
         // --- Compute L(k,k) -----------------------------------------------
         if d <= 0. {
             // not pos def
-            panic!("Could not complete Cholesky factorization. Please provide a positive definite matrix");
+            return Err("Could not complete Cholesky factorization. Please provide a positive definite matrix".to_string());
         }
         let p = w[wc + k];
         w[wc + k] += 1;
@@ -311,7 +311,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
     }
     n_mat.l.p[n] = s.cp[n]; // finalize L
 
-    n_mat
+    Ok(n_mat)
 }
 
 /// A\b solver using Cholesky factorization.
@@ -351,16 +351,18 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Nmrc {
 /// println!("{:?}", &b);
 /// ```
 ///
-pub fn cholsol(a: &Sprs, b: &mut [f64], order: i8) {
+pub fn cholsol(a: &Sprs, b: &mut [f64], order: i8) -> Result<(), String> {
     let n = a.n;
     let mut s = schol(a, order); // ordering and symbolic analysis
-    let n_mat = chol(a, &mut s); // numeric Cholesky factorization
+    let n_mat = chol(a, &mut s)?; // numeric Cholesky factorization
     let mut x = vec![0.; n];
 
     ipvec(n, &s.pinv, b, &mut x[..]); // x = P*b
     lsolve(&n_mat.l, &mut x); // x = L\x
     ltsolve(&n_mat.l, &mut x); // x = L'\x
     pvec(n, &s.pinv, &x[..], &mut b[..]); // b = P'*x
+
+    Ok(())
 }
 
 /// Generalized A times X Plus Y
@@ -490,7 +492,7 @@ pub fn ltsolve(l: &Sprs, x: &mut [f64]) {
 ///
 /// See: `sqr(...)`
 ///
-pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
+pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, String> {
     let n = a.n;
     let mut col;
     let mut top;
@@ -556,7 +558,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
             }
         }
         if ipiv == -1 || a_f <= 0. {
-            panic!("Could not find a pivot");
+            return Err("Could not find a pivot".to_string());
         }
         if n_mat.pinv.as_ref().unwrap()[col] < 0 && f64::abs(x[col]) >= a_f * tol {
             ipiv = col as isize;
@@ -592,7 +594,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
     n_mat.l.quick_trim();
     n_mat.u.quick_trim();
 
-    n_mat
+    Ok(n_mat)
 }
 
 /// A\b solver using LU factorization.
@@ -642,16 +644,17 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Nmrc {
 /// ```
 
 ///
-pub fn lusol(a: &Sprs, b: &mut [f64], order: i8, tol: f64) {
+pub fn lusol(a: &Sprs, b: &mut [f64], order: i8, tol: f64) -> Result<(), String> {
     let mut x = vec![0.; a.n];
     let mut s;
     s = sqr(a, order, false); // ordering and symbolic analysis
-    let n = lu(a, &mut s, tol); // numeric LU factorization
+    let n = lu(a, &mut s, tol)?; // numeric LU factorization
 
     ipvec(a.n, &n.pinv, b, &mut x[..]); // x = P*b
     lsolve(&n.l, &mut x); // x = L\x
     usolve(&n.u, &mut x[..]); // x = U\x
     ipvec(a.n, &s.q, &x[..], &mut b[..]); // b = Q*x
+    Ok(())
 }
 
 /// C = A * B

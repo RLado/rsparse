@@ -12,13 +12,15 @@
 //! - Triplet matrix (`Trpl`)
 //!
 //! ## Features
-//! - Convert from dense `[Vec<f64>]` or `Vec<Vec<64>>` matrix to CSC sparse matrix `Sprs`
-//! - Convert from sparse to dense `Vec<Vec<f64>>`
+//! - Convert from dense `[Vec<T>]` or `Vec<Vec<T>>` matrix to CSC sparse matrix `Sprs`
+//! - Convert from sparse to dense `Vec<Vec<T>>`
 //! - Convert from a triplet format matrix `Trpl` to CSC `Sprs`
 //! - Sparse matrix addition [C=A+B]
 //! - Sparse matrix multiplication [C=A*B]
 //! - Transpose sparse matrices
 //! - Solve sparse linear systems
+//!
+//! > *Where `T` is a numeric type*
 //!
 //! ### Solvers
 //! - **lsolve**: Solve a lower triangular system. Solves Lx=b where x and b are dense.
@@ -181,7 +183,7 @@
 //! Copyright (c) 2023 Ricard Lado
 
 pub mod data;
-use data::{Nmrc, Sprs, Symb};
+use data::{Nmrc, Numeric, Sprs, Symb};
 
 #[derive(Copy, Clone, Debug)]
 pub enum Error {
@@ -242,14 +244,14 @@ impl std::error::Error for Error {}
 /// assert_eq!(rsparse::add(&a_sparse, &b_sparse, 1., 1.).to_dense(), r);
 /// ```
 ///
-pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
+pub fn add<T: Numeric<T>>(a: &Sprs<T>, b: &Sprs<T>, alpha: T, beta: T) -> Sprs<T> {
     let mut nz = 0;
     let m = a.m;
     let n = b.n;
     let anz = a.p[a.n] as usize;
     let bnz = b.p[n] as usize;
     let mut w = vec![0; m];
-    let mut x = vec![0.0; m];
+    let mut x = vec![T::zero(); m];
     let mut c = Sprs::zeros(m, n, anz + bnz);
 
     for j in 0..n {
@@ -272,7 +274,7 @@ pub fn add(a: &Sprs, b: &Sprs, alpha: f64, beta: f64) -> Sprs {
 ///
 /// See: `schol(...)`
 ///
-pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, Error> {
+pub fn chol<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb) -> Result<Nmrc<T>, Error> {
     let mut top;
     let mut d;
     let mut lki;
@@ -283,7 +285,7 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, Error> {
     let mut w = vec![0; 3 * n];
     let ws = n; // pointer of w
     let wc = 2 * n; // pointer of w
-    let mut x = vec![0.; n];
+    let mut x = vec![T::zero(); n];
 
     let c = match s.pinv {
         Some(_) => symperm(a, &s.pinv),
@@ -294,18 +296,18 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, Error> {
         // --- Nonzero pattern of L(k,:) ------------------------------------
         w[wc + k] = s.cp[k]; // column k of L starts here
         n_mat.l.p[k] = w[wc + k];
-        x[k] = 0.; // x (0:k) is now zero
+        x[k] = T::zero(); // x (0:k) is now zero
         w[k] = k as isize; // mark node k as visited
         top = ereach(&c, k, &s.parent[..], ws, &mut w[..], &mut x[..], n); // find row k of L
         d = x[k]; // d = C(k,k)
-        x[k] = 0.; // clear workspace for k+1st iteration
+        x[k] = T::zero(); // clear workspace for k+1st iteration
 
         // --- Triangular solve ---------------------------------------------
         while top < n {
             // solve L(0:k-1,0:k-1) * x = C(:,k)
             i = w[ws + top] as usize; // s [top..n-1] is pattern of L(k,:)
             lki = x[i] / n_mat.l.x[n_mat.l.p[i] as usize]; // L(k,i) = x (i) / L(i,i)
-            x[i] = 0.; // clear workspace for k+1st iteration
+            x[i] = T::zero(); // clear workspace for k+1st iteration
             for p in (n_mat.l.p[i] + 1)..w[wc + i] as isize {
                 x[n_mat.l.i[p as usize]] -= n_mat.l.x[p as usize] * lki;
             }
@@ -319,14 +321,14 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, Error> {
             top += 1;
         }
         // --- Compute L(k,k) -----------------------------------------------
-        if d <= 0. {
+        if d <= T::zero() {
             // not pos def
             return Err(Error::NotPositiveDefinite);
         }
         let p = w[wc + k];
         w[wc + k] += 1;
         n_mat.l.i[p as usize] = k; // store L(k,k) = sqrt (d) in column k
-        n_mat.l.x[p as usize] = f64::powf(d, 0.5);
+        n_mat.l.x[p as usize] = T::powf(d, 0.5);
     }
     n_mat.l.p[n] = s.cp[n]; // finalize L
 
@@ -370,11 +372,11 @@ pub fn chol(a: &Sprs, s: &mut Symb) -> Result<Nmrc, Error> {
 /// println!("{:?}", &b);
 /// ```
 ///
-pub fn cholsol(a: &Sprs, b: &mut [f64], order: i8) -> Result<(), Error> {
+pub fn cholsol<T: Numeric<T>>(a: &Sprs<T>, b: &mut [T], order: i8) -> Result<(), Error> {
     let n = a.n;
     let mut s = schol(a, order); // ordering and symbolic analysis
     let n_mat = chol(a, &mut s)?; // numeric Cholesky factorization
-    let mut x = vec![0.; n];
+    let mut x = vec![T::zero(); n];
 
     ipvec(n, &s.pinv, b, &mut x[..]); // x = P*b
     lsolve(&n_mat.l, &mut x); // x = L\x
@@ -404,7 +406,7 @@ pub fn cholsol(a: &Sprs, b: &mut [f64], order: i8) -> Result<(), Error> {
 /// assert_eq!(rsparse::gaxpy(&a_sparse, &x, &y), vec![9., 3., 55.]);
 /// ```
 ///
-pub fn gaxpy(a_mat: &Sprs, x: &[f64], y: &[f64]) -> Vec<f64> {
+pub fn gaxpy<T: Numeric<T>>(a_mat: &Sprs<T>, x: &[T], y: &[T]) -> Vec<T> {
     let mut r = y.to_vec();
     for (j, &x_j) in x.iter().enumerate().take(a_mat.n) {
         for p in a_mat.p[j]..a_mat.p[j + 1] {
@@ -457,7 +459,7 @@ pub fn gaxpy(a_mat: &Sprs, x: &[f64], y: &[f64]) -> Vec<f64> {
 /// rsparse::lsolve(&l_sparse, &mut b);
 /// ```
 ///
-pub fn lsolve(l: &Sprs, x: &mut [f64]) {
+pub fn lsolve<T: Numeric<T>>(l: &Sprs<T>, x: &mut [T]) {
     for j in 0..l.n {
         x[j] /= l.x[l.p[j] as usize];
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
@@ -498,7 +500,7 @@ pub fn lsolve(l: &Sprs, x: &mut [f64]) {
 /// ```
 
 ///
-pub fn ltsolve(l: &Sprs, x: &mut [f64]) {
+pub fn ltsolve<T: Numeric<T>>(l: &Sprs<T>, x: &mut [T]) {
     for j in (0..l.n).rev() {
         for p in (l.p[j] + 1) as usize..l.p[j + 1] as usize {
             x[j] -= l.x[p] * x[l.i[p]];
@@ -511,7 +513,7 @@ pub fn ltsolve(l: &Sprs, x: &mut [f64]) {
 ///
 /// See: `sqr(...)`
 ///
-pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
+pub fn lu<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb, tol: T) -> Result<Nmrc<T>, Error> {
     let n = a.n;
     let mut col;
     let mut top;
@@ -519,7 +521,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
     let mut a_f;
     let mut t;
     let mut pivot;
-    let mut x = vec![0.; n];
+    let mut x = vec![T::zero(); n];
     let mut xi = vec![0; 2 * n];
     let mut n_mat = Nmrc {
         l: Sprs::zeros(n, n, s.lnz), // initial L and U
@@ -528,7 +530,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
         b: Vec::new(),
     };
 
-    x[0..n].fill(0.); // clear workspace
+    x[0..n].fill(T::zero()); // clear workspace
     n_mat.pinv.as_mut().unwrap()[0..n].fill(-1); // no rows pivotal yet
     n_mat.l.p[0..n + 1].fill(0); // no cols of L yet
 
@@ -545,13 +547,13 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
             let nsz = 2 * n_mat.l.nzmax + n;
             n_mat.l.nzmax = nsz;
             n_mat.l.i.resize(nsz, 0);
-            n_mat.l.x.resize(nsz, 0.);
+            n_mat.l.x.resize(nsz, T::zero());
         }
         if s.unz + n > n_mat.u.nzmax {
             let nsz = 2 * n_mat.u.nzmax + n;
             n_mat.u.nzmax = nsz;
             n_mat.u.i.resize(nsz, 0);
-            n_mat.u.x.resize(nsz, 0.);
+            n_mat.u.x.resize(nsz, T::zero());
         }
 
         col = s.q.as_ref().map_or(k, |q| q[k] as usize);
@@ -559,12 +561,12 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
 
         // --- Find pivot ---------------------------------------------------
         ipiv = -1;
-        a_f = -1.;
+        a_f = -T::one();
         for &i in xi[top..n].iter() {
             let i = i as usize;
             if n_mat.pinv.as_ref().unwrap()[i] < 0 {
                 // row i is not pivotal
-                t = f64::abs(x[i]);
+                t = T::abs(x[i]);
                 if t > a_f {
                     a_f = t; // largest pivot candidate so far
                     ipiv = i as isize;
@@ -576,10 +578,10 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
                 s.unz += 1;
             }
         }
-        if ipiv == -1 || a_f <= 0. {
+        if ipiv == -1 || a_f <= T::zero() {
             return Err(Error::NoPivot);
         }
-        if n_mat.pinv.as_ref().unwrap()[col] < 0 && f64::abs(x[col]) >= a_f * tol {
+        if n_mat.pinv.as_ref().unwrap()[col] < 0 && T::abs(x[col]) >= a_f * tol {
             ipiv = col as isize;
         }
 
@@ -590,7 +592,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
         s.unz += 1;
         n_mat.pinv.as_mut().unwrap()[ipiv as usize] = k as isize; // ipiv is the kth pivot row
         n_mat.l.i[s.lnz] = ipiv as usize; // first entry in L(:,k) is L(k,k) = 1
-        n_mat.l.x[s.lnz] = 1.;
+        n_mat.l.x[s.lnz] = T::one();
         s.lnz += 1;
         for &i in xi[top..n].iter() {
             let i = i as usize;
@@ -600,7 +602,7 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
                 n_mat.l.x[s.lnz] = x[i] / pivot; // scale pivot column
                 s.lnz += 1
             }
-            x[i] = 0.; // x [0..n-1] = 0 for next k
+            x[i] = T::zero(); // x [0..n-1] = 0 for next k
         }
     }
     // --- Finalize L and U -------------------------------------------------
@@ -663,8 +665,8 @@ pub fn lu(a: &Sprs, s: &mut Symb, tol: f64) -> Result<Nmrc, Error> {
 /// ```
 
 ///
-pub fn lusol(a: &Sprs, b: &mut [f64], order: i8, tol: f64) -> Result<(), Error> {
-    let mut x = vec![0.; a.n];
+pub fn lusol<T: Numeric<T>>(a: &Sprs<T>, b: &mut [T], order: i8, tol: T) -> Result<(), Error> {
+    let mut x = vec![T::zero(); a.n];
     let mut s;
     s = sqr(a, order, false); // ordering and symbolic analysis
     let n = lu(a, &mut s, tol)?; // numeric LU factorization
@@ -704,10 +706,10 @@ pub fn lusol(a: &Sprs, b: &mut [f64], order: i8, tol: f64) -> Result<(), Error> 
 /// );
 /// ```
 ///
-pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
+pub fn multiply<T: Numeric<T>>(a: &Sprs<T>, b: &Sprs<T>) -> Sprs<T> {
     let mut nz = 0;
     let mut w = vec![0; a.m];
-    let mut x = vec![0.0; a.m];
+    let mut x = vec![T::zero(); a.m];
     let mut c = Sprs::zeros(a.m, b.n, 2 * (a.p[a.n] + b.p[b.n]) as usize + a.m);
 
     for j in 0..b.n {
@@ -716,7 +718,7 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
             let nsz = 2 * c.nzmax + a.m;
             c.nzmax = nsz;
             c.i.resize(nsz, 0);
-            c.x.resize(nsz, 0.);
+            c.x.resize(nsz, T::zero());
         }
         c.p[j] = nz as isize; // column j of C starts here
         for p in b.p[j]..b.p[j + 1] {
@@ -762,14 +764,14 @@ pub fn multiply(a: &Sprs, b: &Sprs) -> Sprs {
 /// assert!(f64::abs(rsparse::norm(&a_sparse) - 4.4199) < 1e-3);
 /// ```
 ///
-pub fn norm(a: &Sprs) -> f64 {
-    let mut norm_r = 0.;
+pub fn norm<T: Numeric<T>>(a: &Sprs<T>) -> T {
+    let mut norm_r = T::zero();
     for j in 0..a.n {
-        let mut s = 0.;
+        let mut s = T::zero();
         for p in a.p[j] as usize..a.p[j + 1] as usize {
             s += a.x[p].abs();
         }
-        norm_r = f64::max(norm_r, s);
+        norm_r = T::max(norm_r, s);
     }
 
     norm_r
@@ -779,7 +781,7 @@ pub fn norm(a: &Sprs) -> f64 {
 ///
 /// See: `sqr(...)`
 ///
-pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
+pub fn qr<T: Numeric<T>>(a: &Sprs<T>, s: &Symb) -> Nmrc<T> {
     let mut p1;
     let mut top;
     let mut col;
@@ -796,9 +798,9 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
     let leftmost_p = m + n; // pointer of s.pinv
     let mut w = vec![0; s.m2 + n];
     let ws = s.m2; // pointer of w // size n
-    let mut x = vec![0.; s.m2];
+    let mut x = vec![T::zero(); s.m2];
     let mut n_mat = Nmrc::new();
-    let mut beta = vec![0.; n]; // equivalent to n_mat.b
+    let mut beta = vec![T::zero(); n]; // equivalent to n_mat.b
 
     w[0..s.m2].fill(-1); // clear w, to mark nodes
     rnz = 0;
@@ -846,7 +848,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
             r.i[rnz] = i as usize; // R(i,k) = x(i)
             r.x[rnz] = x[i as usize];
             rnz += 1;
-            x[i as usize] = 0.;
+            x[i as usize] = T::zero();
             if s.parent[i as usize] == k as isize {
                 vnz = scatter_no_x(i as usize, &mut w[..], k, &mut v, vnz);
             }
@@ -854,7 +856,7 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
         for p in p1..vnz {
             // gather V(:,k) = x
             v.x[p] = x[v.i[p]];
-            x[v.i[p]] = 0.;
+            x[v.i[p]] = T::zero();
         }
         r.i[rnz] = k; // R(k,k) = norm (x)
         r.x[rnz] = house(&mut v.x[..], Some(p1), &mut beta[..], Some(k), vnz - p1); // [v,beta]=house(x)
@@ -918,14 +920,14 @@ pub fn qr(a: &Sprs, s: &Symb) -> Nmrc {
 /// println!("{:?}", &b);
 /// ```
 ///
-pub fn qrsol(a: &Sprs, b: &mut [f64], order: i8) {
+pub fn qrsol<T: Numeric<T>>(a: &Sprs<T>, b: &mut [T], order: i8) {
     let n = a.n;
     let m = a.m;
 
     if m >= n {
         let s = sqr(a, order, true); // ordering and symbolic analysis
         let n_mat = qr(a, &s); // numeric QR factorization
-        let mut x = vec![0.; s.m2];
+        let mut x = vec![T::zero(); s.m2];
 
         ipvec(m, &s.pinv, b, &mut x[..]); // x(0:m-1) = P*b(0:m-1)
         for k in 0..n {
@@ -938,7 +940,7 @@ pub fn qrsol(a: &Sprs, b: &mut [f64], order: i8) {
         let at = transpose(a); // Ax=b is underdetermined
         let s = sqr(&at, order, true); // ordering and symbolic analysis
         let n_mat = qr(&at, &s); // numeric QR factorization of A'
-        let mut x = vec![0.; s.m2];
+        let mut x = vec![T::zero(); s.m2];
 
         pvec(m, &s.q, b, &mut x[..]); // x(0:m-1) = Q'*b (permutation)
         utsolve(&n_mat.u, &mut x[..]); // x = R'\x
@@ -959,7 +961,7 @@ pub fn qrsol(a: &Sprs, b: &mut [f64], order: i8) {
 /// - 1:LU,
 /// - 2:QR
 ///
-pub fn schol(a: &Sprs, order: i8) -> Symb {
+pub fn schol<T: Numeric<T>>(a: &Sprs<T>, order: i8) -> Symb {
     let n = a.n;
     let mut s = Symb::new(); // allocate symbolic analysis
     let p = amd(a, order); // P = amd(A+A'), or natural
@@ -967,7 +969,7 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
     drop(p);
     let c_mat = symperm(a, &s.pinv); // C = spones(triu(A(P,P)))
     s.parent = etree(&c_mat, false); // find e tree of C
-    let post = post(n, &s.parent[..]); // postorder the etree
+    let post = post::<T>(n, &s.parent[..]); // postorder the etree
     let mut c = counts(&c_mat, &s.parent[..], &post[..], false); // find column counts of chol(C)
     drop(post);
     drop(c_mat);
@@ -1010,14 +1012,14 @@ pub fn schol(a: &Sprs, order: i8) -> Symb {
 /// );
 /// ```
 ///
-pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
-    let mut c = Sprs::new();
+pub fn scpmat<T: Numeric<T>>(alpha: T, a: &Sprs<T>) -> Sprs<T> {
+    let mut c = Sprs::<T>::new();
     c.m = a.m;
     c.n = a.n;
     c.nzmax = a.nzmax;
     c.p = a.p.clone();
     c.i = a.i.clone();
-    c.x = a.x.iter().map(|x| x + alpha).collect();
+    c.x = a.x.iter().map(|x| *x + alpha).collect();
 
     c
 }
@@ -1053,21 +1055,21 @@ pub fn scpmat(alpha: f64, a: &Sprs) -> Sprs {
 /// );
 /// ```
 ///
-pub fn scxmat(alpha: f64, a: &Sprs) -> Sprs {
-    let mut c = Sprs::new();
+pub fn scxmat<T: Numeric<T>>(alpha: T, a: &Sprs<T>) -> Sprs<T> {
+    let mut c = Sprs::<T>::new();
     c.m = a.m;
     c.n = a.n;
     c.nzmax = a.nzmax;
     c.p = a.p.clone();
     c.i = a.i.clone();
-    c.x = a.x.iter().map(|x| x * alpha).collect();
+    c.x = a.x.iter().map(|x| *x * alpha).collect();
 
     c
 }
 
 /// Print a sparse matrix
 ///
-pub fn sprs_print(a: &Sprs, brief: bool) {
+pub fn sprs_print<T: Numeric<T>>(a: &Sprs<T>, brief: bool) {
     let m = a.m;
     let n = a.n;
     let nzmax = a.nzmax;
@@ -1105,7 +1107,7 @@ pub fn sprs_print(a: &Sprs, brief: bool) {
 /// - 1:LU,
 /// - 2:QR
 ///
-pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
+pub fn sqr<T: Numeric<T>>(a: &Sprs<T>, order: i8, qr: bool) -> Symb {
     let mut s = Symb::new();
     let pst;
 
@@ -1118,7 +1120,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
             a.clone()
         };
         s.parent = etree(&c, true); // etree of C'*C, where C=A(:,Q)
-        pst = post(a.n, &s.parent[..]);
+        pst = post::<T>(a.n, &s.parent[..]);
         s.cp = counts(&c, &s.parent[..], &pst[..], true); // col counts chol(C'*C)
         s.pinv = vcount(&c, &s.parent[..], &mut s.m2, &mut s.lnz);
         s.unz = 0;
@@ -1169,7 +1171,7 @@ pub fn sqr(a: &Sprs, order: i8, qr: bool) -> Symb {
 /// )
 /// ```
 ///
-pub fn transpose(a: &Sprs) -> Sprs {
+pub fn transpose<T: Numeric<T>>(a: &Sprs<T>) -> Sprs<T> {
     let mut q;
     let mut w = vec![0; a.m];
     let mut c = Sprs::zeros(a.n, a.m, a.p[a.n] as usize);
@@ -1221,7 +1223,7 @@ pub fn transpose(a: &Sprs) -> Sprs {
 /// rsparse::usolve(&u_sparse, &mut b);
 /// ```
 ///
-pub fn usolve(u: &Sprs, x: &mut [f64]) {
+pub fn usolve<T: Numeric<T>>(u: &Sprs<T>, x: &mut [T]) {
     for j in (0..u.n).rev() {
         x[j] /= u.x[(u.p[j + 1] - 1) as usize];
         for p in u.p[j]..u.p[j + 1] - 1 {
@@ -1262,7 +1264,7 @@ pub fn usolve(u: &Sprs, x: &mut [f64]) {
 /// ```
 
 ///
-pub fn utsolve(u: &Sprs, x: &mut [f64]) {
+pub fn utsolve<T: Numeric<T>>(u: &Sprs<T>, x: &mut [T]) {
     for j in 0..u.n {
         for p in u.p[j] as usize..(u.p[j + 1] - 1) as usize {
             x[j] -= u.x[p] * x[u.i[p]];
@@ -1283,7 +1285,7 @@ pub fn utsolve(u: &Sprs, x: &mut [f64]) {
 /// - 1:LU,
 /// - 2:QR
 ///
-fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
+fn amd<T: Numeric<T>>(a: &Sprs<T>, order: i8) -> Option<Vec<isize>> {
     let mut dense;
     let mut c;
     let mut nel = 0;
@@ -1326,7 +1328,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
     dense = std::cmp::min((n - 2) as isize, dense);
 
     if order == 0 && n == m {
-        c = add(a, &at, 0., 0.); // C = A+A'
+        c = add(a, &at, T::zero(), T::zero()); // C = A+A'
     } else if order == 1 {
         p2 = 0; // drop dense columns from AT
         for j in 0..m {
@@ -1368,7 +1370,7 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
     let nsz = cnz as usize + cnz as usize / 5 + 2 * n;
     c.nzmax = nsz;
     c.i.resize(nsz, 0);
-    c.x.resize(nsz, 0.);
+    c.x.resize(nsz, T::zero());
 
     // --- Initialize quotient graph ----------------------------------------
     for k in 0..n {
@@ -1737,7 +1739,8 @@ fn amd(a: &Sprs, order: i8) -> Option<Vec<isize>> {
     for i in 0..=n {
         // postorder the assembly tree
         if c.p[i] == -1 {
-            k = tdfs(i as isize, k, &mut ww[..], head, next, &mut p_v[..], w); // Note that CSparse passes the pointers of ww
+            k = tdfs::<T>(i as isize, k, &mut ww[..], head, next, &mut p_v[..], w);
+            // Note that CSparse passes the pointers of ww
         }
     }
 
@@ -1787,7 +1790,7 @@ fn cedge(
 
 /// colcount = column counts of LL'=A or LL'=A'A, given parent & post ordering
 ///
-fn counts(a: &Sprs, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
+fn counts<T: Numeric<T>>(a: &Sprs<T>, parent: &[isize], post: &[isize], ata: bool) -> Vec<isize> {
     let m = a.m;
     let n = a.n;
 
@@ -1906,9 +1909,9 @@ fn cumsum(p: &mut [isize], c: &mut [isize], n: usize) -> usize {
 /// depth-first-search of the graph of a matrix, starting at node j
 /// if pstack_i is used for pstack=xi[pstack_i]
 ///
-fn dfs(
+fn dfs<T: Numeric<T>>(
     j: usize,
-    l: &mut Sprs,
+    l: &mut Sprs<T>,
     top: usize,
     xi: &mut [isize],
     pstack_i: &usize,
@@ -1969,19 +1972,19 @@ fn dfs(
 
 /// keep off-diagonal entries; drop diagonal entries
 ///
-fn diag(i: isize, j: isize, _: f64) -> bool {
+fn diag<T: Numeric<T>>(i: isize, j: isize, _: T) -> bool {
     i != j
 }
 
 /// compute nonzero pattern of L(k,:)
 ///
-fn ereach(
-    a: &Sprs,
+fn ereach<T: Numeric<T>>(
+    a: &Sprs<T>,
     k: usize,
     parent: &[isize],
     s: usize,
     w: &mut [isize],
-    x: &mut [f64],
+    x: &mut [T],
     top: usize,
 ) -> usize {
     let mut top = top;
@@ -2016,7 +2019,7 @@ fn ereach(
 
 /// compute the etree of A (using triu(A), or A'A without forming A'A
 ///
-fn etree(a: &Sprs, ata: bool) -> Vec<isize> {
+fn etree<T: Numeric<T>>(a: &Sprs<T>, ata: bool) -> Vec<isize> {
     let mut parent = vec![0; a.n];
     let mut i;
     let mut inext;
@@ -2065,7 +2068,7 @@ fn etree(a: &Sprs, ata: bool) -> Vec<isize> {
 
 /// drop entries for which fkeep(A(i,j)) is false; return nz if OK, else -1
 ///
-fn fkeep(a: &mut Sprs, f: &dyn Fn(isize, isize, f64) -> bool) -> isize {
+fn fkeep<T: Numeric<T>>(a: &mut Sprs<T>, f: &dyn Fn(isize, isize, T) -> bool) -> isize {
     let mut p;
     let mut nz = 0;
     let n = a.n;
@@ -2089,8 +2092,8 @@ fn fkeep(a: &mut Sprs, f: &dyn Fn(isize, isize, f64) -> bool) -> isize {
 
 /// apply the ith Householder vector to x
 ///
-fn happly(v: &Sprs, i: usize, beta: f64, x: &mut [f64]) {
-    let mut tau = 0.;
+fn happly<T: Numeric<T>>(v: &Sprs<T>, i: usize, beta: T, x: &mut [T]) {
+    let mut tau = T::zero();
 
     for p in v.p[i]..v.p[i + 1] {
         // tau = v'*x
@@ -2106,31 +2109,34 @@ fn happly(v: &Sprs, i: usize, beta: f64, x: &mut [f64]) {
 /// create a Householder reflection [v,beta,s]=house(x), overwrite x with v,
 /// where (I-beta*v*v')*x = s*x.  See Algo 5.1.1, Golub & Van Loan, 3rd ed.
 ///
-fn house(
-    x: &mut [f64],
+fn house<T: Numeric<T>>(
+    x: &mut [T],
     xp: Option<usize>,
-    beta: &mut [f64],
+    beta: &mut [T],
     betap: Option<usize>,
     n: usize,
-) -> f64 {
+) -> T {
     let s;
     let xp = xp.unwrap_or(0);
     let betap = betap.unwrap_or(0);
 
-    let sigma: f64 = (1..n).map(|i| x[i + xp] * x[i + xp]).sum();
-    // FIXME: float comparison with bit-wise not equals
-    if sigma != 0. {
+    let sigma: T = (1..n).map(|i| x[i + xp] * x[i + xp]).sum();
+    if sigma != T::zero() {
         s = (x[xp] * x[xp] + sigma).sqrt(); // s = norm (x)
-        x[xp] = if x[xp] <= 0. {
+        x[xp] = if x[xp] <= T::zero() {
             x[xp] - s
         } else {
             -sigma / (x[xp] + s)
         };
-        beta[betap] = (-s * x[xp]).recip();
+        beta[betap] = T::one() / (-s * x[xp]);
     } else {
         s = x[xp].abs(); // s = |x(0)|
-        beta[betap] = if x[xp] <= 0. { 2. } else { 0. };
-        x[xp] = 1.;
+        beta[betap] = if x[xp] <= T::zero() {
+            T::one() + T::one()
+        } else {
+            T::zero()
+        };
+        x[xp] = T::one();
     }
 
     s
@@ -2138,7 +2144,7 @@ fn house(
 
 /// x(P) = b, for dense vectors x and b; P=None denotes identity
 ///
-fn ipvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
+fn ipvec<T: Numeric<T>>(n: usize, p: &Option<Vec<isize>>, b: &[T], x: &mut [T]) {
     for k in 0..n {
         if p.is_some() {
             x[p.as_ref().unwrap()[k] as usize] = b[k];
@@ -2150,7 +2156,11 @@ fn ipvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
 
 /// C = A(P,Q) where P and Q are permutations of 0..m-1 and 0..n-1
 ///
-fn permute(a: &Sprs, pinv: &Option<Vec<isize>>, q: &Option<Vec<isize>>) -> Sprs {
+fn permute<T: Numeric<T>>(
+    a: &Sprs<T>,
+    pinv: &Option<Vec<isize>>,
+    q: &Option<Vec<isize>>,
+) -> Sprs<T> {
     let mut j;
     let mut nz = 0;
     let mut c = Sprs::zeros(a.m, a.n, a.p[a.n] as usize);
@@ -2196,7 +2206,7 @@ fn pinvert(p: &Option<Vec<isize>>, n: usize) -> Option<Vec<isize>> {
 
 /// post order a forest
 ///
-fn post(n: usize, parent: &[isize]) -> Vec<isize> {
+fn post<T: Numeric<T>>(n: usize, parent: &[isize]) -> Vec<isize> {
     let mut k = 0;
     let mut post = vec![0; n]; // allocate result
     let mut w = vec![0; 3 * n]; // 3*n workspace
@@ -2219,7 +2229,7 @@ fn post(n: usize, parent: &[isize]) -> Vec<isize> {
         if *par != -1 {
             continue; // skip j if it is not a root
         }
-        k = tdfs(j as isize, k, &mut w[..], head, next, &mut post[..], stack);
+        k = tdfs::<T>(j as isize, k, &mut w[..], head, next, &mut post[..], stack);
     }
 
     post
@@ -2227,7 +2237,7 @@ fn post(n: usize, parent: &[isize]) -> Vec<isize> {
 
 /// x = b(P), for dense vectors x and b; P=None denotes identity
 ///
-fn pvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
+fn pvec<T: Numeric<T>>(n: usize, p: &Option<Vec<isize>>, b: &[T], x: &mut [T]) {
     for (k, x_k) in x.iter_mut().enumerate().take(n) {
         *x_k = match p {
             Some(p) => b[p[k] as usize],
@@ -2239,7 +2249,13 @@ fn pvec(n: usize, p: &Option<Vec<isize>>, b: &[f64], x: &mut [f64]) {
 /// xi [top...n-1] = nodes reachable from graph of L*P' via nodes in B(:,k).
 /// xi [n...2n-1] used as workspace.
 ///
-fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut [isize], pinv: &Option<Vec<isize>>) -> usize {
+fn reach<T: Numeric<T>>(
+    l: &mut Sprs<T>,
+    b: &Sprs<T>,
+    k: usize,
+    xi: &mut [isize],
+    pinv: &Option<Vec<isize>>,
+) -> usize {
     let mut top = l.n;
 
     for p in b.p[k] as usize..b.p[k + 1] as usize {
@@ -2258,14 +2274,14 @@ fn reach(l: &mut Sprs, b: &Sprs, k: usize, xi: &mut [isize], pinv: &Option<Vec<i
 
 /// x = x + beta * A(:,j), where x is a dense vector and A(:,j) is sparse
 ///
-fn scatter(
-    a: &Sprs,
+fn scatter<T: Numeric<T>>(
+    a: &Sprs<T>,
     j: usize,
-    beta: f64,
+    beta: T,
     w: &mut [isize],
-    x: &mut [f64],
+    x: &mut [T],
     mark: usize,
-    c: &mut Sprs,
+    c: &mut Sprs<T>,
     nz: usize,
 ) -> usize {
     let mut i;
@@ -2287,7 +2303,13 @@ fn scatter(
 
 /// beta * A(:,j), where A(:,j) is sparse. For QR decomposition
 ///
-fn scatter_no_x(j: usize, w: &mut [isize], mark: usize, c: &mut Sprs, nz: usize) -> usize {
+fn scatter_no_x<T: Numeric<T>>(
+    j: usize,
+    w: &mut [isize],
+    mark: usize,
+    c: &mut Sprs<T>,
+    nz: usize,
+) -> usize {
     let mut i;
     let mut nzo = nz;
     for p in c.p[j] as usize..c.p[j + 1] as usize {
@@ -2304,19 +2326,19 @@ fn scatter_no_x(j: usize, w: &mut [isize], mark: usize, c: &mut Sprs, nz: usize)
 
 /// Solve Lx=b(:,k), leaving pattern in xi[top..n-1], values scattered in x.
 ///
-fn splsolve(
-    l: &mut Sprs,
-    b: &Sprs,
+fn splsolve<T: Numeric<T>>(
+    l: &mut Sprs<T>,
+    b: &Sprs<T>,
     k: usize,
     xi: &mut [isize],
-    x: &mut [f64],
+    x: &mut [T],
     pinv: &Option<Vec<isize>>,
 ) -> usize {
     let mut jnew;
     let top = reach(l, b, k, &mut xi[..], pinv); // xi[top..n-1]=Reach(B(:,k))
 
     for p in top..l.n {
-        x[xi[p] as usize] = 0.; // clear x
+        x[xi[p] as usize] = T::zero(); // clear x
     }
     for p in b.p[k] as usize..b.p[k + 1] as usize {
         x[b.i[p]] = b.x[p]; // scatter B
@@ -2340,7 +2362,7 @@ fn splsolve(
 
 /// C = A(p,p) where A and C are symmetric the upper part stored, Pinv not P
 ///
-fn symperm(a: &Sprs, pinv: &Option<Vec<isize>>) -> Sprs {
+fn symperm<T: Numeric<T>>(a: &Sprs<T>, pinv: &Option<Vec<isize>>) -> Sprs<T> {
     let n = a.n;
     let mut i;
     let mut i2;
@@ -2383,7 +2405,7 @@ fn symperm(a: &Sprs, pinv: &Option<Vec<isize>>) -> Sprs {
 
 /// depth-first search and postorder of a tree rooted at node j (for fn amd())
 ///
-fn tdfs(
+fn tdfs<T: Numeric<T>>(
     j: isize,
     k: isize,
     ww: &mut [isize],
@@ -2421,7 +2443,12 @@ fn tdfs(
 
 /// compute vnz, Pinv, leftmost, m2 from A and parent
 ///
-fn vcount(a: &Sprs, parent: &[isize], m2: &mut usize, vnz: &mut usize) -> Option<Vec<isize>> {
+fn vcount<T: Numeric<T>>(
+    a: &Sprs<T>,
+    parent: &[isize],
+    m2: &mut usize,
+    vnz: &mut usize,
+) -> Option<Vec<isize>> {
     let n = a.n;
     let m = a.m;
 

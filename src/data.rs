@@ -2,10 +2,175 @@
 //!
 
 use crate::{add, multiply, scpmat, scxmat};
+use std::fmt;
 use std::fs::File;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
+// Define a generic Numeric trait compatible with `Sprs` matrices
+/// Define zero trait for generic Numeric type
+pub trait Zero {
+    fn zero() -> Self;
+}
+
+impl Zero for i8 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for i16 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for i32 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for i64 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for isize {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for f32 {
+    fn zero() -> Self {
+        0.0
+    }
+}
+
+impl Zero for f64 {
+    fn zero() -> Self {
+        0.0
+    }
+}
+
+/// Define one trait for generic Numeric type
+pub trait One {
+    fn one() -> Self;
+}
+
+impl One for i8 {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for i16 {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for i32 {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for i64 {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for isize {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for f32 {
+    fn one() -> Self {
+        1.0
+    }
+}
+
+impl One for f64 {
+    fn one() -> Self {
+        1.0
+    }
+}
+
+/// Aggregate trait representing numeric values
+pub trait Numeric<F>:
+    Add
+    + AddAssign
+    + Sub
+    + SubAssign
+    + Neg
+    + Mul
+    + MulAssign
+    + Div
+    + DivAssign
+    + Copy
+    + PartialEq
+    + PartialOrd
+    + Default
+    + Zero
+    + One
+    + fmt::Display
+    + fmt::Debug
+    + std::ops::Add<Output = F>
+    + std::ops::Sub<Output = F>
+    + std::ops::Mul<Output = F>
+    + std::ops::Div<Output = F>
+    + std::ops::Neg<Output = F>
+    + std::iter::Sum
+    + From<F>
+{
+    fn abs(self) -> F;
+    fn max(self, other: F) -> F;
+    fn powf(self, exp: f64) -> F;
+    fn sqrt(self) -> F;
+}
+
+impl Numeric<f32> for f32 {
+    fn abs(self) -> f32 {
+        self.abs()
+    }
+
+    fn max(self, other: f32) -> f32 {
+        self.max(other)
+    }
+
+    fn powf(self, exp: f64) -> f32 {
+        self.powf(exp as f32)
+    }
+
+    fn sqrt(self) -> f32 {
+        self.sqrt()
+    }
+}
+
+impl Numeric<f64> for f64 {
+    fn abs(self) -> f64 {
+        self.abs()
+    }
+
+    fn max(self, other: f64) -> f64 {
+        self.max(other)
+    }
+
+    fn powf(self, exp: f64) -> f64 {
+        self.powf(exp)
+    }
+
+    fn sqrt(self) -> f64 {
+        self.sqrt()
+    }
+}
 // --- Utilities ---------------------------------------------------------------
 
 /// p [0..n] = cumulative sum of c [0..n-1], and then copy p [0..n-1] into c
@@ -29,7 +194,7 @@ fn cumsum(p: &mut [isize], c: &mut [isize], n: usize) -> usize {
 /// Useful example for CSR format
 /// ![CSR_fig](https://user-images.githubusercontent.com/25719985/211358936-e54efcb3-2b63-44e7-9618-871cbcdcdd36.png)
 #[derive(Clone, Debug)]
-pub struct Sprs {
+pub struct Sprs<T: Numeric<T>> {
     /// maximum number of entries
     pub nzmax: usize,
     /// number of rows
@@ -41,13 +206,13 @@ pub struct Sprs {
     /// row indices, size nzmax
     pub i: Vec<usize>,
     /// numericals values, size nzmax
-    pub x: Vec<f64>,
+    pub x: Vec<T>,
 }
 
-impl Sprs {
+impl<T: Numeric<T>> Sprs<T> {
     /// Initializes to an empty matrix
     ///
-    pub fn new() -> Sprs {
+    pub fn new() -> Sprs<T> {
         Sprs {
             nzmax: 0,
             m: 0,
@@ -60,25 +225,25 @@ impl Sprs {
 
     /// Allocates a zero filled matrix
     ///
-    pub fn zeros(m: usize, n: usize, nzmax: usize) -> Sprs {
+    pub fn zeros(m: usize, n: usize, nzmax: usize) -> Sprs<T> {
         Sprs {
             nzmax,
             m,
             n,
             p: vec![0; n + 1],
             i: vec![0; nzmax],
-            x: vec![0.; nzmax],
+            x: vec![T::zero(); nzmax],
         }
     }
 
     /// Allocates an `n`x`n` identity matrix
     ///
-    pub fn eye(n: usize) -> Sprs {
+    pub fn eye(n: usize) -> Sprs<T> {
         let mut s = Sprs::zeros(n, n, n);
         for i in 0..n {
             s.p[i] = i as isize;
             s.i[i] = i;
-            s.x[i] = 1.;
+            s.x[i] = T::one();
         }
         s.p[n] = n as isize;
 
@@ -87,7 +252,7 @@ impl Sprs {
 
     /// Allocates a matrix from a 2D array of Vec
     ///
-    pub fn new_from_vec(t: &[Vec<f64>]) -> Sprs {
+    pub fn new_from_vec(t: &[Vec<T>]) -> Sprs<T> {
         let mut s = Sprs::new();
         s.from_vec(t);
 
@@ -96,7 +261,7 @@ impl Sprs {
 
     /// Allocates a matrix from a `Trpl` object
     ///
-    pub fn new_from_trpl(t: &Trpl) -> Sprs {
+    pub fn new_from_trpl(t: &Trpl<T>) -> Sprs<T> {
         let mut s = Sprs::new();
         s.from_trpl(t);
 
@@ -108,7 +273,7 @@ impl Sprs {
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
     ///
-    pub fn get(&self, row: usize, column: usize) -> Option<f64> {
+    pub fn get(&self, row: usize, column: usize) -> Option<T> {
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
                 if (self.i[i as usize], j) == (row, column) {
@@ -123,7 +288,7 @@ impl Sprs {
     /// Convert from a 2D array of Vec into a Sprs matrix, overwriting the
     /// current object
     ///
-    pub fn from_vec(&mut self, a: &[Vec<f64>]) {
+    pub fn from_vec(&mut self, a: &[Vec<T>]) {
         let r = a.len(); // num rows
         let c = a[0].len(); // num columns
         let mut idxptr = 0;
@@ -139,7 +304,7 @@ impl Sprs {
             self.p.push(idxptr);
             for (j, aj) in a.iter().enumerate().take(r) {
                 let elem = aj[i];
-                if elem != 0.0 {
+                if elem != T::zero() {
                     self.x.push(elem);
                     self.i.push(j);
                     idxptr += 1
@@ -179,13 +344,13 @@ impl Sprs {
     /// If you need duplicate values to be summed use `Trpl`'s method `sum_dupl()`
     /// before running this method.
     ///
-    pub fn from_trpl(&mut self, t: &Trpl) {
+    pub fn from_trpl(&mut self, t: &Trpl<T>) {
         self.nzmax = t.x.len();
         self.m = t.m;
         self.n = t.n;
         self.p = vec![0; t.n + 1];
         self.i = vec![0; t.x.len()];
-        self.x = vec![0.; t.x.len()];
+        self.x = vec![T::zero(); t.x.len()];
 
         // get workspace
         let mut w = vec![0; self.n];
@@ -207,7 +372,7 @@ impl Sprs {
     ///
     pub fn trim(&mut self) {
         for i in (0..self.x.len()).rev() {
-            if self.x[i] == 0. {
+            if self.x[i] == T::zero() {
                 self.x.remove(i);
                 self.i.remove(i);
                 // fix the column pointers
@@ -228,13 +393,13 @@ impl Sprs {
     pub fn quick_trim(&mut self) {
         self.nzmax = self.p[self.n] as usize;
         self.i.resize(self.nzmax, 0);
-        self.x.resize(self.nzmax, 0.);
+        self.x.resize(self.nzmax, T::zero());
     }
 
     /// Converts sparse matrix to dense matrix
     ///
-    pub fn to_dense(&self) -> Vec<Vec<f64>> {
-        let mut r = vec![vec![0.; self.n]; self.m];
+    pub fn to_dense(&self) -> Vec<Vec<T>> {
+        let mut r = vec![vec![T::zero(); self.n]; self.m];
         for j in 0..self.p.len() - 1 {
             for i in self.p[j]..self.p[j + 1] {
                 r[self.i[i as usize]][j] = self.x[i as usize];
@@ -259,12 +424,18 @@ impl Sprs {
 
         Ok(())
     }
+}
 
+impl<T: Numeric<T> + std::str::FromStr> Sprs<T> {
     /// Load a sparse matrix
     ///
     /// Loads a `Sprs` matrix from a plain text file
     ///
-    pub fn load(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn load(&mut self, path: &str) -> Result<(), Box<dyn std::error::Error>>
+    where
+        <T as std::str::FromStr>::Err: std::error::Error,
+        <T as std::str::FromStr>::Err: 'static,
+    {
         let f = File::open(path)?;
 
         // Read the file line by line
@@ -338,7 +509,7 @@ impl Sprs {
                 let x_str = t.replace(']', "");
                 // populate `Vec`
                 for item in x_str.split(',') {
-                    self.x.push(item.replace(' ', "").parse::<f64>()?);
+                    self.x.push(item.replace(' ', "").parse::<T>()?);
                 }
             }
         }
@@ -347,7 +518,7 @@ impl Sprs {
     }
 }
 
-impl Default for Sprs {
+impl<T: Numeric<T>> Default for Sprs<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -355,283 +526,283 @@ impl Default for Sprs {
 
 // Implementing operators for `Sprs`
 
-impl std::ops::Add for Sprs {
+impl<T: Numeric<T>> std::ops::Add for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `+` operator. Adds two sparse matrices
     ///
-    fn add(self, other: Sprs) -> Sprs {
-        add(&self, &other, 1., 1.)
+    fn add(self, other: Sprs<T>) -> Sprs<T> {
+        add(&self, &other, T::one(), T::one())
     }
 }
 
-impl std::ops::Add<&Sprs> for Sprs {
+impl<T: Numeric<T>> std::ops::Add<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `+` operator.
     ///
-    fn add(self, other: &Sprs) -> Sprs {
-        add(&self, other, 1., 1.)
+    fn add(self, other: &Sprs<T>) -> Sprs<T> {
+        add(&self, other, T::one(), T::one())
     }
 }
 
-impl std::ops::Add for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Add for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `+` operator. Adds two references to sparse matrices
     ///
-    fn add(self, other: &Sprs) -> Sprs {
-        add(self, other, 1., 1.)
+    fn add(self, other: &Sprs<T>) -> Sprs<T> {
+        add(self, other, T::one(), T::one())
     }
 }
 
-impl std::ops::Add<Sprs> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Add<Sprs<T>> for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `+` operator.
     ///
-    fn add(self, other: Sprs) -> Sprs {
-        add(self, &other, 1., 1.)
+    fn add(self, other: Sprs<T>) -> Sprs<T> {
+        add(self, &other, T::one(), T::one())
     }
 }
 
-impl std::ops::Sub for Sprs {
+impl<T: Numeric<T>> std::ops::Sub for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `-` operator. Subtracts two sparse matrices
     ///
-    fn sub(self, other: Sprs) -> Sprs {
-        add(&self, &other, 1., -1.)
+    fn sub(self, other: Sprs<T>) -> Sprs<T> {
+        add(&self, &other, T::one(), -T::one())
     }
 }
 
-impl std::ops::Sub<&Sprs> for Sprs {
+impl<T: Numeric<T>> std::ops::Sub<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `-` operator.
     ///
-    fn sub(self, other: &Sprs) -> Sprs {
-        add(&self, other, 1., -1.)
+    fn sub(self, other: &Sprs<T>) -> Sprs<T> {
+        add(&self, other, T::one(), -T::one())
     }
 }
 
-impl std::ops::Sub for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Sub for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `-` operator. Subtracts two references to sparse matrices
     ///
-    fn sub(self, other: &Sprs) -> Sprs {
-        add(self, other, 1., -1.)
+    fn sub(self, other: &Sprs<T>) -> Sprs<T> {
+        add(self, other, T::one(), -T::one())
     }
 }
 
-impl std::ops::Sub<Sprs> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Sub<Sprs<T>> for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `-` operator.
     ///
-    fn sub(self, other: Sprs) -> Sprs {
-        add(self, &other, 1., -1.)
+    fn sub(self, other: Sprs<T>) -> Sprs<T> {
+        add(self, &other, T::one(), -T::one())
     }
 }
 
-impl std::ops::Mul for Sprs {
+impl<T: Numeric<T>> std::ops::Mul for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `*` operator. Multiplies two sparse matrices
     ///
-    fn mul(self, other: Sprs) -> Sprs {
+    fn mul(self, other: Sprs<T>) -> Sprs<T> {
         multiply(&self, &other)
     }
 }
 
-impl std::ops::Mul<&Sprs> for Sprs {
+impl<T: Numeric<T>> std::ops::Mul<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `*` operator.
     ///
-    fn mul(self, other: &Sprs) -> Sprs {
+    fn mul(self, other: &Sprs<T>) -> Sprs<T> {
         multiply(&self, other)
     }
 }
 
-impl std::ops::Mul for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Mul for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `*` operator. Multiplies two references to sparse matrices
     ///
-    fn mul(self, other: &Sprs) -> Sprs {
+    fn mul(self, other: &Sprs<T>) -> Sprs<T> {
         multiply(self, other)
     }
 }
 
-impl std::ops::Mul<Sprs> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Mul<Sprs<T>> for &Sprs<T> {
+    type Output = Sprs<T>;
 
     /// Overloads the `*` operator.
     ///
-    fn mul(self, other: Sprs) -> Sprs {
+    fn mul(self, other: Sprs<T>) -> Sprs<T> {
         multiply(self, &other)
     }
 }
 
-// Implementing operators for `Sprs` and `f64` types
+// Implementing operators for `Sprs` and `T` types
 
-impl std::ops::Add<f64> for Sprs {
+impl<T: Numeric<T>> std::ops::Add<T> for Sprs<T> {
     type Output = Self;
 
-    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
+    /// Overloads the `+` operator. Adds an `T` value to all elements of a
     /// sparse matrix
     ///
-    fn add(self, other: f64) -> Sprs {
+    fn add(self, other: T) -> Sprs<T> {
         scpmat(other, &self)
     }
 }
 
-impl std::ops::Add<f64> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Add<T> for &Sprs<T> {
+    type Output = Sprs<T>;
 
-    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
+    /// Overloads the `+` operator. Adds an `T` value to all elements of a
     /// sparse matrix
     ///
-    fn add(self, other: f64) -> Sprs {
+    fn add(self, other: T) -> Sprs<T> {
         scpmat(other, self)
     }
 }
 
-impl std::ops::Sub<f64> for Sprs {
+impl<T: Numeric<T>> std::ops::Sub<T> for Sprs<T> {
     type Output = Self;
 
-    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
+    /// Overloads the `-` operator. Subtracts an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn sub(self, other: f64) -> Sprs {
+    fn sub(self, other: T) -> Sprs<T> {
         scpmat(-other, &self)
     }
 }
 
-impl std::ops::Sub<f64> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Sub<T> for &Sprs<T> {
+    type Output = Sprs<T>;
 
-    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
+    /// Overloads the `-` operator. Subtracts an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn sub(self, other: f64) -> Sprs {
+    fn sub(self, other: T) -> Sprs<T> {
         scpmat(-other, self)
     }
 }
 
-impl std::ops::Mul<f64> for Sprs {
+impl<T: Numeric<T>> std::ops::Mul<T> for Sprs<T> {
     type Output = Self;
 
-    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
+    /// Overloads the `*` operator. Multiplies an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn mul(self, other: f64) -> Sprs {
+    fn mul(self, other: T) -> Sprs<T> {
         scxmat(other, &self)
     }
 }
 
-impl std::ops::Mul<f64> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Mul<T> for &Sprs<T> {
+    type Output = Sprs<T>;
 
-    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
+    /// Overloads the `*` operator. Multiplies an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn mul(self, other: f64) -> Sprs {
+    fn mul(self, other: T) -> Sprs<T> {
         scxmat(other, self)
     }
 }
 
-impl std::ops::Div<f64> for Sprs {
+impl<T: Numeric<T>> std::ops::Div<T> for Sprs<T> {
     type Output = Self;
 
-    /// Overloads the `/` operator. Divides by an `f64` value to all elements of
+    /// Overloads the `/` operator. Divides by an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn div(self, other: f64) -> Sprs {
-        scxmat(other.recip(), &self)
+    fn div(self, other: T) -> Sprs<T> {
+        scxmat(T::one() / other, &self)
     }
 }
 
-impl std::ops::Div<f64> for &Sprs {
-    type Output = Sprs;
+impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
+    type Output = Sprs<T>;
 
-    /// Overloads the `/` operator. Divides by an `f64` value to all elements of
+    /// Overloads the `/` operator. Divides by an `T` value to all elements of
     /// a sparse matrix
     ///
-    fn div(self, other: f64) -> Sprs {
-        scxmat(other.recip(), self)
+    fn div(self, other: T) -> Sprs<T> {
+        scxmat(T::one() / other, self)
     }
 }
 
-// Implementing operators for `f64` and `Sprs` types
+// Implementing operators for `T` and `Sprs<T>` types
 
-impl std::ops::Add<Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Add<Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
-    /// sparse matrix
-    ///
-    fn add(self, other: Sprs) -> Sprs {
-        scpmat(self, &other)
-    }
-}
+//     /// Overloads the `+` operator. Adds an `T` value to all elements of a
+//     /// sparse matrix
+//     ///
+//     fn add(self, other: Sprs<T>) -> Sprs<T> {
+//         scpmat(self, &other)
+//     }
+// }
 
-impl std::ops::Add<&Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Add<&Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
-    /// sparse matrix
-    ///
-    fn add(self, other: &Sprs) -> Sprs {
-        scpmat(self, other)
-    }
-}
+//     /// Overloads the `+` operator. Adds an `T` value to all elements of a
+//     /// sparse matrix
+//     ///
+//     fn add(self, other: &Sprs<T>) -> Sprs<T> {
+//         scpmat(self, other)
+//     }
+// }
 
-impl std::ops::Sub<Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Sub<Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
-    /// a sparse matrix
-    ///
-    fn sub(self, other: Sprs) -> Sprs {
-        scpmat(self, &scxmat(-1., &other))
-    }
-}
+//     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
+//     /// a sparse matrix
+//     ///
+//     fn sub(self, other: Sprs<T>) -> Sprs<T> {
+//         scpmat(self, &scxmat(-1., &other))
+//     }
+// }
 
-impl std::ops::Sub<&Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Sub<&Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
-    /// a sparse matrix
-    ///
-    fn sub(self, other: &Sprs) -> Sprs {
-        scpmat(self, &scxmat(-1., other))
-    }
-}
+//     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
+//     /// a sparse matrix
+//     ///
+//     fn sub(self, other: &Sprs<T>) -> Sprs<T> {
+//         scpmat(self, &scxmat(-1., other))
+//     }
+// }
 
-impl std::ops::Mul<Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Mul<Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
-    /// a sparse matrix
-    ///
-    fn mul(self, other: Sprs) -> Sprs {
-        scxmat(self, &other)
-    }
-}
+//     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
+//     /// a sparse matrix
+//     ///
+//     fn mul(self, other: Sprs<T>) -> Sprs<T> {
+//         scxmat(self, &other)
+//     }
+// }
 
-impl std::ops::Mul<&Sprs> for f64 {
-    type Output = Sprs;
+// impl <T: Numeric<T>> std::ops::Mul<&Sprs<T>> for T {
+//     type Output = Sprs<T>;
 
-    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
-    /// a sparse matrix
-    ///
-    fn mul(self, other: &Sprs) -> Sprs {
-        scxmat(self, other)
-    }
-}
+//     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
+//     /// a sparse matrix
+//     ///
+//     fn mul(self, other: &Sprs<T>) -> Sprs<T> {
+//         scxmat(self, other)
+//     }
+// }
 
 /// Matrix in triplet format
 ///
@@ -640,7 +811,7 @@ impl std::ops::Mul<&Sprs> for f64 {
 /// reason rsparse provides this struct that can be converted into a Sprs.
 ///
 #[derive(Clone, Debug)]
-pub struct Trpl {
+pub struct Trpl<T: Numeric<T>> {
     /// number of rows
     pub m: usize,
     /// number of columns
@@ -650,13 +821,13 @@ pub struct Trpl {
     /// row indices
     pub i: Vec<usize>,
     /// numericals values
-    pub x: Vec<f64>,
+    pub x: Vec<T>,
 }
 
-impl Trpl {
+impl<T: Numeric<T> + for<'a> std::iter::Sum<&'a T>> Trpl<T> {
     /// Initializes to an empty matrix
     ///
-    pub fn new() -> Trpl {
+    pub fn new() -> Trpl<T> {
         Trpl {
             m: 0,
             n: 0,
@@ -668,7 +839,7 @@ impl Trpl {
 
     /// Append new value to the matrix
     ///
-    pub fn append(&mut self, row: usize, column: usize, value: f64) {
+    pub fn append(&mut self, row: usize, column: usize, value: T) {
         if row + 1 > self.m {
             self.m = row + 1;
         }
@@ -683,14 +854,14 @@ impl Trpl {
 
     /// Convert `Trpl` to `Sprs` matrix
     ///
-    pub fn to_sprs(&self) -> Sprs {
+    pub fn to_sprs(&self) -> Sprs<T> {
         let mut s = Sprs {
             nzmax: self.x.len(),
             m: self.m,
             n: self.n,
             p: vec![0; self.n + 1],
             i: vec![0; self.x.len()],
-            x: vec![0.; self.x.len()],
+            x: vec![T::zero(); self.x.len()],
         };
 
         // get workspace
@@ -729,7 +900,7 @@ impl Trpl {
 
                 (pos, val) = g.unwrap();
                 for i in &pos[..pos.len()] {
-                    self.x[*i] = 0.;
+                    self.x[*i] = T::zero();
                 }
                 self.x[pos[pos.len() - 1]] = val.iter().sum();
             }
@@ -742,7 +913,7 @@ impl Trpl {
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
     ///
-    pub fn get(&self, row: usize, column: usize) -> Option<f64> {
+    pub fn get(&self, row: usize, column: usize) -> Option<T> {
         for i in 0..self.x.len() {
             if (self.i[i], self.p[i] as usize) == (row, column) {
                 return Some(self.x[i]);
@@ -757,7 +928,7 @@ impl Trpl {
     /// *- Note: This function may negatively impact performance, and should be
     /// avoided*
     ///
-    pub fn get_all(&self, row: usize, column: usize) -> Option<(Vec<usize>, Vec<f64>)> {
+    pub fn get_all(&self, row: usize, column: usize) -> Option<(Vec<usize>, Vec<T>)> {
         let mut r = Vec::new();
         let mut pos = Vec::new();
 
@@ -776,7 +947,7 @@ impl Trpl {
     }
 }
 
-impl Default for Trpl {
+impl<T: Numeric<T> + for<'a> std::iter::Sum<&'a T>> Default for Trpl<T> {
     fn default() -> Self {
         Self::new()
     }
@@ -827,21 +998,21 @@ impl Default for Symb {
 /// Numeric Cholesky, LU, or QR factorization
 ///
 #[derive(Clone, Debug)]
-pub struct Nmrc {
+pub struct Nmrc<T: Numeric<T>> {
     /// L for LU and Cholesky, V for QR
-    pub l: Sprs,
+    pub l: Sprs<T>,
     /// U for LU, R for QR, not used for Cholesky
-    pub u: Sprs,
+    pub u: Sprs<T>,
     /// partial pivoting for LU
     pub pinv: Option<Vec<isize>>,
     /// beta [0..n-1] for QR
-    pub b: Vec<f64>,
+    pub b: Vec<T>,
 }
 
-impl Nmrc {
+impl<T: Numeric<T>> Nmrc<T> {
     /// Initializes to empty struct
     ///
-    pub fn new() -> Nmrc {
+    pub fn new() -> Nmrc<T> {
         Nmrc {
             l: Sprs::new(),
             u: Sprs::new(),
@@ -851,7 +1022,7 @@ impl Nmrc {
     }
 }
 
-impl Default for Nmrc {
+impl<T: Numeric<T>> Default for Nmrc<T> {
     fn default() -> Self {
         Self::new()
     }

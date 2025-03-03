@@ -41,7 +41,7 @@ fn save_load_2() {
     let path = "./tests/assets/save_load_2.sprs";
 
     // define empty
-    let l_sparse = rsparse::data::Sprs::new();
+    let l_sparse: rsparse::data::Sprs<f64> = rsparse::data::Sprs::new();
 
     // save the `Sprs` matrix
     l_sparse.save(path).unwrap();

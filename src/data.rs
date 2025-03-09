@@ -1,11 +1,9 @@
 //! Data structures for rsparse
-//!
 
 use crate::{add, multiply, scpmat, scxmat};
 use std::fmt;
 use std::fs::File;
-use std::io::Write;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 // Define a generic Numeric trait compatible with `Sprs` matrices
@@ -120,14 +118,14 @@ pub trait Numeric<F>:
     + Default
     + Zero
     + One
+    + Add<Output = F>
+    + Sub<Output = F>
+    + Mul<Output = F>
+    + Div<Output = F>
+    + Neg<Output = F>
+    + std::iter::Sum
     + fmt::Display
     + fmt::Debug
-    + std::ops::Add<Output = F>
-    + std::ops::Sub<Output = F>
-    + std::ops::Mul<Output = F>
-    + std::ops::Div<Output = F>
-    + std::ops::Neg<Output = F>
-    + std::iter::Sum
     + From<F>
 {
     fn abs(self) -> F;
@@ -526,7 +524,7 @@ impl<T: Numeric<T>> Default for Sprs<T> {
 
 // Implementing operators for `Sprs`
 
-impl<T: Numeric<T>> std::ops::Add for Sprs<T> {
+impl<T: Numeric<T>> Add for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `+` operator. Adds two sparse matrices
@@ -536,7 +534,7 @@ impl<T: Numeric<T>> std::ops::Add for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Add<&Sprs<T>> for Sprs<T> {
+impl<T: Numeric<T>> Add<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `+` operator.
@@ -546,7 +544,7 @@ impl<T: Numeric<T>> std::ops::Add<&Sprs<T>> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Add for &Sprs<T> {
+impl<T: Numeric<T>> Add for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `+` operator. Adds two references to sparse matrices
@@ -556,7 +554,7 @@ impl<T: Numeric<T>> std::ops::Add for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Add<Sprs<T>> for &Sprs<T> {
+impl<T: Numeric<T>> Add<Sprs<T>> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `+` operator.
@@ -566,7 +564,7 @@ impl<T: Numeric<T>> std::ops::Add<Sprs<T>> for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub for Sprs<T> {
+impl<T: Numeric<T>> Sub for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `-` operator. Subtracts two sparse matrices
@@ -576,7 +574,7 @@ impl<T: Numeric<T>> std::ops::Sub for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub<&Sprs<T>> for Sprs<T> {
+impl<T: Numeric<T>> Sub<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `-` operator.
@@ -586,7 +584,7 @@ impl<T: Numeric<T>> std::ops::Sub<&Sprs<T>> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub for &Sprs<T> {
+impl<T: Numeric<T>> Sub for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `-` operator. Subtracts two references to sparse matrices
@@ -596,7 +594,7 @@ impl<T: Numeric<T>> std::ops::Sub for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub<Sprs<T>> for &Sprs<T> {
+impl<T: Numeric<T>> Sub<Sprs<T>> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `-` operator.
@@ -606,7 +604,7 @@ impl<T: Numeric<T>> std::ops::Sub<Sprs<T>> for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul for Sprs<T> {
+impl<T: Numeric<T>> Mul for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `*` operator. Multiplies two sparse matrices
@@ -616,7 +614,7 @@ impl<T: Numeric<T>> std::ops::Mul for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul<&Sprs<T>> for Sprs<T> {
+impl<T: Numeric<T>> Mul<&Sprs<T>> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `*` operator.
@@ -626,7 +624,7 @@ impl<T: Numeric<T>> std::ops::Mul<&Sprs<T>> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul for &Sprs<T> {
+impl<T: Numeric<T>> Mul for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `*` operator. Multiplies two references to sparse matrices
@@ -636,7 +634,7 @@ impl<T: Numeric<T>> std::ops::Mul for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul<Sprs<T>> for &Sprs<T> {
+impl<T: Numeric<T>> Mul<Sprs<T>> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `*` operator.
@@ -648,7 +646,7 @@ impl<T: Numeric<T>> std::ops::Mul<Sprs<T>> for &Sprs<T> {
 
 // Implementing operators for `Sprs` and `T` types
 
-impl<T: Numeric<T>> std::ops::Add<T> for Sprs<T> {
+impl<T: Numeric<T>> Add<T> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `+` operator. Adds an `T` value to all elements of a
@@ -659,7 +657,7 @@ impl<T: Numeric<T>> std::ops::Add<T> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Add<T> for &Sprs<T> {
+impl<T: Numeric<T>> Add<T> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `+` operator. Adds an `T` value to all elements of a
@@ -670,7 +668,7 @@ impl<T: Numeric<T>> std::ops::Add<T> for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub<T> for Sprs<T> {
+impl<T: Numeric<T>> Sub<T> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
@@ -681,7 +679,7 @@ impl<T: Numeric<T>> std::ops::Sub<T> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Sub<T> for &Sprs<T> {
+impl<T: Numeric<T>> Sub<T> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
@@ -692,7 +690,7 @@ impl<T: Numeric<T>> std::ops::Sub<T> for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul<T> for Sprs<T> {
+impl<T: Numeric<T>> Mul<T> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
@@ -703,7 +701,7 @@ impl<T: Numeric<T>> std::ops::Mul<T> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Mul<T> for &Sprs<T> {
+impl<T: Numeric<T>> Mul<T> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
@@ -714,7 +712,7 @@ impl<T: Numeric<T>> std::ops::Mul<T> for &Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Div<T> for Sprs<T> {
+impl<T: Numeric<T>> Div<T> for Sprs<T> {
     type Output = Self;
 
     /// Overloads the `/` operator. Divides by an `T` value to all elements of
@@ -725,7 +723,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for Sprs<T> {
     }
 }
 
-impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
+impl<T: Numeric<T>> Div<T> for &Sprs<T> {
     type Output = Sprs<T>;
 
     /// Overloads the `/` operator. Divides by an `T` value to all elements of
@@ -738,7 +736,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 
 // Implementing operators for `T` and `Sprs<T>` types
 
-// impl <T: Numeric<T>> std::ops::Add<Sprs<T>> for T {
+// impl <T: Numeric<T>> Add<Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `+` operator. Adds an `T` value to all elements of a
@@ -749,7 +747,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 //     }
 // }
 
-// impl <T: Numeric<T>> std::ops::Add<&Sprs<T>> for T {
+// impl <T: Numeric<T>> Add<&Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `+` operator. Adds an `T` value to all elements of a
@@ -760,7 +758,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 //     }
 // }
 
-// impl <T: Numeric<T>> std::ops::Sub<Sprs<T>> for T {
+// impl <T: Numeric<T>> Sub<Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
@@ -771,7 +769,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 //     }
 // }
 
-// impl <T: Numeric<T>> std::ops::Sub<&Sprs<T>> for T {
+// impl <T: Numeric<T>> Sub<&Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
@@ -782,7 +780,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 //     }
 // }
 
-// impl <T: Numeric<T>> std::ops::Mul<Sprs<T>> for T {
+// impl <T: Numeric<T>> Mul<Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
@@ -793,7 +791,7 @@ impl<T: Numeric<T>> std::ops::Div<T> for &Sprs<T> {
 //     }
 // }
 
-// impl <T: Numeric<T>> std::ops::Mul<&Sprs<T>> for T {
+// impl <T: Numeric<T>> Mul<&Sprs<T>> for T {
 //     type Output = Sprs<T>;
 
 //     /// Overloads the `*` operator. Multiplies an `T` value to all elements of

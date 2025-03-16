@@ -1222,13 +1222,13 @@ fn scal_ops_1(){
 
     // Test add
     assert_eq!(rsparse::scpmat(65., &a_sparse).to_dense(), (&a_sparse + 65.).to_dense());
-    //assert_eq!(rsparse::scpmat(65., &a_sparse).to_dense(), (65. + &a_sparse).to_dense());
+    assert_eq!(rsparse::scpmat(65., &a_sparse).to_dense(), (65.0f64 + &a_sparse).to_dense());
     // Test sub
     assert_eq!(rsparse::scpmat(-65., &a_sparse).to_dense(), (&a_sparse - 65.).to_dense());
-    //assert_eq!(rsparse::scpmat(65., &rsparse::scxmat(-1., &a_sparse)).to_dense(), (65. - &a_sparse).to_dense());
+    assert_eq!(rsparse::scpmat(65., &rsparse::scxmat(-1., &a_sparse)).to_dense(), (65. - &a_sparse).to_dense());
     // Test mul
     assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (&a_sparse * 65.).to_dense());
-    //assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (65. * &a_sparse).to_dense());
+    assert_eq!(rsparse::scxmat(65., &a_sparse).to_dense(), (65. * &a_sparse).to_dense());
     // Test div
     assert_eq!(rsparse::scxmat(1./65., &a_sparse).to_dense(), (&a_sparse / 65.).to_dense());
 }

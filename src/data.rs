@@ -734,73 +734,139 @@ impl<T: Numeric<T>> Div<T> for &Sprs<T> {
     }
 }
 
-// Implementing operators for `T` and `Sprs<T>` types
+// Implementing operators for `T` (f32, f64) and `Sprs<T>` types
 
-// impl <T: Numeric<T>> Add<Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Add<Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
 
-//     /// Overloads the `+` operator. Adds an `T` value to all elements of a
-//     /// sparse matrix
-//     ///
-//     fn add(self, other: Sprs<T>) -> Sprs<T> {
-//         scpmat(self, &other)
-//     }
-// }
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
+    /// sparse matrix
+    ///
+    fn add(self, other: Sprs<f32>) -> Sprs<f32> {
+        scpmat(self, &other)
+    }
+}
 
-// impl <T: Numeric<T>> Add<&Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Add<Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
 
-//     /// Overloads the `+` operator. Adds an `T` value to all elements of a
-//     /// sparse matrix
-//     ///
-//     fn add(self, other: &Sprs<T>) -> Sprs<T> {
-//         scpmat(self, other)
-//     }
-// }
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
+    /// sparse matrix
+    ///
+    fn add(self, other: Sprs<f64>) -> Sprs<f64> {
+        scpmat(self, &other)
+    }
+}
 
-// impl <T: Numeric<T>> Sub<Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Add<&Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
 
-//     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
-//     /// a sparse matrix
-//     ///
-//     fn sub(self, other: Sprs<T>) -> Sprs<T> {
-//         scpmat(self, &scxmat(-1., &other))
-//     }
-// }
+    /// Overloads the `+` operator. Adds an `f32` value to all elements of a
+    /// sparse matrix
+    ///
+    fn add(self, other: &Sprs<f32>) -> Sprs<f32> {
+        scpmat(self, other)
+    }
+}
 
-// impl <T: Numeric<T>> Sub<&Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Add<&Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
 
-//     /// Overloads the `-` operator. Subtracts an `T` value to all elements of
-//     /// a sparse matrix
-//     ///
-//     fn sub(self, other: &Sprs<T>) -> Sprs<T> {
-//         scpmat(self, &scxmat(-1., other))
-//     }
-// }
+    /// Overloads the `+` operator. Adds an `f64` value to all elements of a
+    /// sparse matrix
+    ///
+    fn add(self, other: &Sprs<f64>) -> Sprs<f64> {
+        scpmat(self, other)
+    }
+}
 
-// impl <T: Numeric<T>> Mul<Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Sub<Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
 
-//     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
-//     /// a sparse matrix
-//     ///
-//     fn mul(self, other: Sprs<T>) -> Sprs<T> {
-//         scxmat(self, &other)
-//     }
-// }
+    /// Overloads the `-` operator. Subtracts an `f32` value to all elements of
+    /// a sparse matrix
+    ///
+    fn sub(self, other: Sprs<f32>) -> Sprs<f32> {
+        scpmat(self, &scxmat(-1., &other))
+    }
+}
 
-// impl <T: Numeric<T>> Mul<&Sprs<T>> for T {
-//     type Output = Sprs<T>;
+impl Sub<Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
 
-//     /// Overloads the `*` operator. Multiplies an `T` value to all elements of
-//     /// a sparse matrix
-//     ///
-//     fn mul(self, other: &Sprs<T>) -> Sprs<T> {
-//         scxmat(self, other)
-//     }
-// }
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
+    /// a sparse matrix
+    ///
+    fn sub(self, other: Sprs<f64>) -> Sprs<f64> {
+        scpmat(self, &scxmat(-1., &other))
+    }
+}
+
+impl Sub<&Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
+
+    /// Overloads the `-` operator. Subtracts an `f32` value to all elements of
+    /// a sparse matrix
+    ///
+    fn sub(self, other: &Sprs<f32>) -> Sprs<f32> {
+        scpmat(self, &scxmat(-1., other))
+    }
+}
+
+impl Sub<&Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
+
+    /// Overloads the `-` operator. Subtracts an `f64` value to all elements of
+    /// a sparse matrix
+    ///
+    fn sub(self, other: &Sprs<f64>) -> Sprs<f64> {
+        scpmat(self, &scxmat(-1., other))
+    }
+}
+
+impl Mul<Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
+
+    /// Overloads the `*` operator. Multiplies an `f32` value to all elements of
+    /// a sparse matrix
+    ///
+    fn mul(self, other: Sprs<f32>) -> Sprs<f32> {
+        scxmat(self, &other)
+    }
+}
+
+impl Mul<Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
+    /// a sparse matrix
+    ///
+    fn mul(self, other: Sprs<f64>) -> Sprs<f64> {
+        scxmat(self, &other)
+    }
+}
+
+impl Mul<&Sprs<f32>> for f32 {
+    type Output = Sprs<f32>;
+
+    /// Overloads the `*` operator. Multiplies an `f32` value to all elements of
+    /// a sparse matrix
+    ///
+    fn mul(self, other: &Sprs<f32>) -> Sprs<f32> {
+        scxmat(self, other)
+    }
+}
+
+impl Mul<&Sprs<f64>> for f64 {
+    type Output = Sprs<f64>;
+
+    /// Overloads the `*` operator. Multiplies an `f64` value to all elements of
+    /// a sparse matrix
+    ///
+    fn mul(self, other: &Sprs<f64>) -> Sprs<f64> {
+        scxmat(self, other)
+    }
+}
 
 /// Matrix in triplet format
 ///

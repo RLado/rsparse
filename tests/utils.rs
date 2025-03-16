@@ -1,7 +1,7 @@
 /// Assert if A is equal to B within an acceptable margin of error (tol)
-pub fn assert_eq_f_vec(a: &Vec<f64>, b: &Vec<f64>, tol: f64) {
+pub fn assert_eq_f_vec<T: rsparse::data::Numeric<T>>(a: &Vec<T>, b: &Vec<T>, tol: T) {
     for i in 0..a.len() {
-        let diff = f64::abs(a[i] - b[i]);
+        let diff = T::abs(a[i] - b[i]);
         if diff > tol {
             panic!(
                 "The Vec are not equal: {:?} != {:?}. -- Check failed by: {}",
@@ -75,10 +75,10 @@ fn assert_eq_f_vec_2(){
 }
 
 /// Assert if A is equal to B within an acceptable margin of error (tol)
-pub fn assert_eq_f2d_vec(a: &Vec<Vec<f64>>, b: &Vec<Vec<f64>>, tol: f64) {
+pub fn assert_eq_f2d_vec<T: rsparse::data::Numeric<T>>(a: &Vec<Vec<T>>, b: &Vec<Vec<T>>, tol: T) {
     for i in 0..a.len() {
         for j in 0..a[0].len() {
-            let diff = f64::abs(a[i][j] - b[i][j]);
+            let diff = T::abs(a[i][j] - b[i][j]);
             if diff > tol {
                 panic!(
                     "The 2D Vec are not equal: {:?} != {:?}. -- Check failed by: {}",

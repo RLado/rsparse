@@ -12,8 +12,8 @@ A Rust library for solving sparse linear systems using direct methods.
 - Triplet matrix (`Trpl`)
 
 ## Features
-- Convert from dense `[Vec<f64>]` or `Vec<Vec<64>>` matrix to CSC sparse matrix `Sprs`
-- Convert from sparse to dense `Vec<Vec<f64>>`
+- Convert from dense `[Vec<T>]` or `Vec<Vec<T>>` matrix to CSC sparse matrix `Sprs`
+- Convert from sparse to dense `Vec<Vec<T>>`
 - Convert from a triplet format matrix `Trpl` to CSC `Sprs`
 - Sparse matrix addition [C=A+B]
 - Sparse matrix multiplication [C=A*B]

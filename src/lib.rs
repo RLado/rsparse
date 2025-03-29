@@ -274,6 +274,7 @@ pub fn add<T: Numeric<T>>(a: &Sprs<T>, b: &Sprs<T>, alpha: T, beta: T) -> Sprs<T
 ///
 /// See: `schol(...)`
 ///
+#[must_use]
 pub fn chol<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb) -> Result<Nmrc<T>, Error> {
     let mut top;
     let mut d;
@@ -372,6 +373,7 @@ pub fn chol<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb) -> Result<Nmrc<T>, Error> 
 /// println!("{:?}", &b);
 /// ```
 ///
+#[must_use]
 pub fn cholsol<T: Numeric<T>>(a: &Sprs<T>, b: &mut [T], order: i8) -> Result<(), Error> {
     let n = a.n;
     let mut s = schol(a, order); // ordering and symbolic analysis
@@ -513,6 +515,7 @@ pub fn ltsolve<T: Numeric<T>>(l: &Sprs<T>, x: &mut [T]) {
 ///
 /// See: `sqr(...)`
 ///
+#[must_use]
 pub fn lu<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb, tol: T) -> Result<Nmrc<T>, Error> {
     let n = a.n;
     let mut col;
@@ -665,6 +668,7 @@ pub fn lu<T: Numeric<T>>(a: &Sprs<T>, s: &mut Symb, tol: T) -> Result<Nmrc<T>, E
 /// ```
 
 ///
+#[must_use]
 pub fn lusol<T: Numeric<T>>(a: &Sprs<T>, b: &mut [T], order: i8, tol: T) -> Result<(), Error> {
     let mut x = vec![T::zero(); a.n];
     let mut s;
